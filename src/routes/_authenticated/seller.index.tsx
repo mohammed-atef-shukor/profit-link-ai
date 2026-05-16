@@ -10,7 +10,7 @@ import {
   setProductStatus,
 } from "@/lib/products.functions";
 
-export const Route = createFileRoute("/_authenticated/seller")({
+export const Route = createFileRoute("/_authenticated/seller/")({
   head: () => ({ meta: [{ title: "Seller dashboard — LinkProfit AI" }] }),
   component: SellerDashboard,
 });
