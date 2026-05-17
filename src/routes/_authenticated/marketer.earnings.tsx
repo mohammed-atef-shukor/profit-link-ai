@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { DollarSign, Wallet, Clock } from "lucide-react";
-import { listSalesForMarketer } from "@/lib/sales.firestore";
+import { subscribeSalesForMarketer } from "@/lib/sales.firestore";
+import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated/marketer/earnings")({
   head: () => ({ meta: [{ title: "Earnings — Marketer — LinkProfit AI" }] }),
@@ -10,7 +11,11 @@ export const Route = createFileRoute("/_authenticated/marketer/earnings")({
 });
 
 function MarketerEarnings() {
-  const sales = useQuery({ queryKey: ["marketer-sales"], queryFn: listSalesForMarketer });
+  const { user } = useFirebaseAuth();
+  const sales = useFirestoreSubscription(
+    (n, e) => subscribeSalesForMarketer(n, e),
+    [user?.uid],
+  );
   const data = sales.data ?? [];
 
   const totals = useMemo(() => {
