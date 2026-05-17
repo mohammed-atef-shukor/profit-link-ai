@@ -32,14 +32,14 @@ function SellerLayout() {
     }
   }, [role, isLoading, navigate]);
 
-  if (isLoading || !role) {
+  if (isLoading) {
     return (
       <div className="min-h-[60vh] grid place-items-center text-muted-foreground">
         <Loader2 className="size-5 animate-spin" />
       </div>
     );
   }
-  if (role !== "seller" && role !== "admin") return null;
+  if (role && role !== "seller" && role !== "admin") return null;
 
   return (
     <DashboardShell title="Seller" items={items}>
