@@ -135,5 +135,3 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <div className="py-6 text-center text-sm text-muted-foreground">{children}</div>;
 }
 
-// Avoid unused import warning if Users isn't referenced
-void Users;
