@@ -32,7 +32,7 @@ function MarketerLayout() {
     }
   }, [role, isLoading, navigate]);
 
-  if (isLoading || !role) {
+  if (isLoading) {
     return (
       <div className="min-h-[60vh] grid place-items-center text-muted-foreground">
         <Loader2 className="size-5 animate-spin" />
