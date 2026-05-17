@@ -22,6 +22,7 @@ import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMarketerRouteImport } from './routes/_authenticated/marketer'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSellerIndexRouteImport } from './routes/_authenticated/seller.index'
+import { Route as AuthenticatedMarketerIndexRouteImport } from './routes/_authenticated/marketer.index'
 import { Route as RCodeSuccessRouteImport } from './routes/r.$code.success'
 import { Route as RCodeCheckoutRouteImport } from './routes/r.$code.checkout'
 import { Route as AuthenticatedSellerSettingsRouteImport } from './routes/_authenticated/seller.settings'
@@ -98,6 +99,12 @@ const AuthenticatedSellerIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSellerRoute,
   } as any)
+const AuthenticatedMarketerIndexRoute =
+  AuthenticatedMarketerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
 const RCodeSuccessRoute = RCodeSuccessRouteImport.update({
   id: '/success',
   path: '/success',
@@ -165,7 +172,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/marketer': typeof AuthenticatedMarketerRoute
+  '/marketer': typeof AuthenticatedMarketerRouteWithChildren
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
@@ -176,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/seller/settings': typeof AuthenticatedSellerSettingsRoute
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
+  '/marketer/': typeof AuthenticatedMarketerIndexRoute
   '/seller/': typeof AuthenticatedSellerIndexRoute
   '/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   '/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -189,7 +197,6 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/marketer': typeof AuthenticatedMarketerRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
   '/seller/earnings': typeof AuthenticatedSellerEarningsRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByTo {
   '/seller/settings': typeof AuthenticatedSellerSettingsRoute
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
+  '/marketer': typeof AuthenticatedMarketerIndexRoute
   '/seller': typeof AuthenticatedSellerIndexRoute
   '/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   '/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -214,7 +222,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/marketer': typeof AuthenticatedMarketerRoute
+  '/_authenticated/marketer': typeof AuthenticatedMarketerRouteWithChildren
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/_authenticated/seller/settings': typeof AuthenticatedSellerSettingsRoute
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
+  '/_authenticated/marketer/': typeof AuthenticatedMarketerIndexRoute
   '/_authenticated/seller/': typeof AuthenticatedSellerIndexRoute
   '/_authenticated/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   '/_authenticated/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -251,6 +260,7 @@ export interface FileRouteTypes {
     | '/seller/settings'
     | '/r/$code/checkout'
     | '/r/$code/success'
+    | '/marketer/'
     | '/seller/'
     | '/seller/products/$productId'
     | '/seller/products/new'
@@ -264,7 +274,6 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/dashboard'
-    | '/marketer'
     | '/products/$productId'
     | '/r/$code'
     | '/seller/earnings'
@@ -274,6 +283,7 @@ export interface FileRouteTypes {
     | '/seller/settings'
     | '/r/$code/checkout'
     | '/r/$code/success'
+    | '/marketer'
     | '/seller'
     | '/seller/products/$productId'
     | '/seller/products/new'
@@ -299,6 +309,7 @@ export interface FileRouteTypes {
     | '/_authenticated/seller/settings'
     | '/r/$code/checkout'
     | '/r/$code/success'
+    | '/_authenticated/marketer/'
     | '/_authenticated/seller/'
     | '/_authenticated/seller/products/$productId'
     | '/_authenticated/seller/products/new'
@@ -409,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellerIndexRouteImport
       parentRoute: typeof AuthenticatedSellerRoute
     }
+    '/_authenticated/marketer/': {
+      id: '/_authenticated/marketer/'
+      path: '/'
+      fullPath: '/marketer/'
+      preLoaderRoute: typeof AuthenticatedMarketerIndexRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
     '/r/$code/success': {
       id: '/r/$code/success'
       path: '/success'
@@ -482,6 +500,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedMarketerRouteChildren {
+  AuthenticatedMarketerIndexRoute: typeof AuthenticatedMarketerIndexRoute
+}
+
+const AuthenticatedMarketerRouteChildren: AuthenticatedMarketerRouteChildren = {
+  AuthenticatedMarketerIndexRoute: AuthenticatedMarketerIndexRoute,
+}
+
+const AuthenticatedMarketerRouteWithChildren =
+  AuthenticatedMarketerRoute._addFileChildren(
+    AuthenticatedMarketerRouteChildren,
+  )
+
 interface AuthenticatedSellerProductsProductIdRouteChildren {
   AuthenticatedSellerProductsProductIdAnalyticsRoute: typeof AuthenticatedSellerProductsProductIdAnalyticsRoute
 }
@@ -538,13 +569,13 @@ const AuthenticatedSellerRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedMarketerRoute: typeof AuthenticatedMarketerRoute
+  AuthenticatedMarketerRoute: typeof AuthenticatedMarketerRouteWithChildren
   AuthenticatedSellerRoute: typeof AuthenticatedSellerRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedMarketerRoute: AuthenticatedMarketerRoute,
+  AuthenticatedMarketerRoute: AuthenticatedMarketerRouteWithChildren,
   AuthenticatedSellerRoute: AuthenticatedSellerRouteWithChildren,
 }
 
