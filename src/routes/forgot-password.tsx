@@ -2,9 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { sendPasswordResetEmail } from "firebase/auth";
 
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { auth } from "@/integrations/firebase/client";
 import { Field } from "./login";
 
 export const Route = createFileRoute("/forgot-password")({
@@ -20,16 +21,17 @@ function ForgotPasswordPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await sendPasswordResetEmail(auth, email, {
+        url: `${window.location.origin}/login`,
+      });
+      setSent(true);
+      toast.success("Reset link sent. Check your inbox.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to send reset email");
+    } finally {
+      setLoading(false);
     }
-    setSent(true);
-    toast.success("Reset link sent. Check your inbox.");
   };
 
   return (

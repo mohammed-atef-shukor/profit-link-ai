@@ -1,11 +1,10 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { ProductForm, type ProductFormValues } from "@/components/seller/ProductForm";
-import { getProduct, updateProduct } from "@/lib/products.functions";
+import { getProduct, updateProduct } from "@/lib/products.firestore";
 
 export const Route = createFileRoute("/_authenticated/seller/products/$productId")({
   head: () => ({ meta: [{ title: "Edit product — LinkProfit AI" }] }),
@@ -15,21 +14,24 @@ export const Route = createFileRoute("/_authenticated/seller/products/$productId
 function EditProductPage() {
   const { productId } = Route.useParams();
   const router = useRouter();
-  const get = useServerFn(getProduct);
-  const update = useServerFn(updateProduct);
   const [submitting, setSubmitting] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data: product, isLoading } = useQuery({
     queryKey: ["product", productId],
-    queryFn: () => get({ data: { id: productId } }),
+    queryFn: () => getProduct(productId),
   });
-
-  const product = data?.product;
 
   const handleSubmit = async (values: ProductFormValues) => {
     setSubmitting(true);
     try {
-      await update({ data: { id: productId, ...values } });
+      await updateProduct(productId, {
+        title: values.title,
+        description: values.description || null,
+        price: values.price,
+        commission_percent: values.commission_percent,
+        image_url: values.image_url || null,
+        status: values.status,
+      });
       toast.success("Product updated");
       router.navigate({ to: "/seller" });
     } catch (e: any) {

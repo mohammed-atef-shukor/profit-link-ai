@@ -3,10 +3,10 @@ import { useEffect, useState } from "react";
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { signInWithEmailAndPassword, signInWithPopup, onAuthStateChanged } from "firebase/auth";
 
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+import { auth, googleProvider } from "@/integrations/firebase/client";
 
 export const Route = createFileRoute("/login")({
   head: () => ({ meta: [{ title: "Login — LinkProfit AI" }] }),
@@ -28,11 +28,11 @@ function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
 
-  // If already signed in, bounce to dashboard
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) navigate({ to: "/dashboard" });
     });
+    return unsub;
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,30 +46,29 @@ function LoginPage() {
     }
     setErrors({});
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast.success("Welcome back!");
+      router.invalidate();
+      navigate({ to: "/dashboard" });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sign-in failed");
+    } finally {
+      setLoading(false);
     }
-    toast.success("Welcome back!");
-    router.invalidate();
-    navigate({ to: "/dashboard" });
   };
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      router.invalidate();
+      navigate({ to: "/dashboard" });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Google sign-in failed");
+    } finally {
       setGoogleLoading(false);
-      toast.error("Google sign-in failed");
-      return;
     }
-    if (result.redirected) return;
-    router.invalidate();
-    navigate({ to: "/dashboard" });
   };
 
   return (
@@ -90,11 +89,7 @@ function LoginPage() {
           <div className="relative flex justify-center"><span className="bg-background px-3 text-xs text-muted-foreground">or with email</span></div>
         </div>
 
-        <Field
-          label="Email"
-          icon={<Mail className="size-4" />}
-          error={errors.email}
-        >
+        <Field label="Email" icon={<Mail className="size-4" />} error={errors.email}>
           <input
             type="email" autoComplete="email" value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -104,9 +99,7 @@ function LoginPage() {
         </Field>
 
         <Field
-          label="Password"
-          icon={<Lock className="size-4" />}
-          error={errors.password}
+          label="Password" icon={<Lock className="size-4" />} error={errors.password}
           right={
             <button type="button" onClick={() => setShowPw((v) => !v)} className="text-muted-foreground hover:text-foreground">
               {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

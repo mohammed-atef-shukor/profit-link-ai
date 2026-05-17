@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Package, Pencil, Trash2, Eye, EyeOff, DollarSign, Percent } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,8 @@ import {
   listMyProducts,
   deleteProduct,
   setProductStatus,
-} from "@/lib/products.functions";
+  type ProductStatus,
+} from "@/lib/products.firestore";
 
 export const Route = createFileRoute("/_authenticated/seller/")({
   head: () => ({ meta: [{ title: "Seller dashboard — LinkProfit AI" }] }),
@@ -17,23 +17,20 @@ export const Route = createFileRoute("/_authenticated/seller/")({
 
 function SellerDashboard() {
   const router = useRouter();
-  const list = useServerFn(listMyProducts);
-  const del = useServerFn(deleteProduct);
-  const toggle = useServerFn(setProductStatus);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["my-products"],
-    queryFn: () => list(),
+    queryFn: listMyProducts,
   });
 
-  const products = data?.products ?? [];
+  const products = data ?? [];
   const published = products.filter((p) => p.status === "published").length;
   const totalValue = products.reduce((s, p) => s + Number(p.price), 0);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product? This cannot be undone.")) return;
     try {
-      await del({ data: { id } });
+      await deleteProduct(id);
       toast.success("Product deleted");
       refetch();
     } catch (e: any) {
@@ -41,10 +38,10 @@ function SellerDashboard() {
     }
   };
 
-  const handleToggle = async (id: string, current: "draft" | "published") => {
-    const next = current === "published" ? "draft" : "published";
+  const handleToggle = async (id: string, current: ProductStatus) => {
+    const next: ProductStatus = current === "published" ? "draft" : "published";
     try {
-      await toggle({ data: { id, status: next } });
+      await setProductStatus(id, next);
       toast.success(next === "published" ? "Published" : "Unpublished");
       refetch();
     } catch (e: any) {

@@ -3,10 +3,16 @@ import { useEffect, useState } from "react";
 import { Loader2, Mail, Lock, User, Store, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import {
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+import { auth, db, googleProvider } from "@/integrations/firebase/client";
 import { Field, GoogleIcon } from "./login";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +29,18 @@ const schema = z.object({
 
 type Role = "seller" | "marketer";
 
+async function ensureUserDoc(uid: string, payload: { display_name: string; role: Role; email: string | null }) {
+  const ref = doc(db, "users", uid);
+  const snap = await getDoc(ref);
+  if (snap.exists()) return;
+  await setDoc(ref, {
+    display_name: payload.display_name,
+    email: payload.email,
+    role: payload.role,
+    created_at: serverTimestamp(),
+  });
+}
+
 function RegisterPage() {
   const router = useRouter();
   const navigate = useNavigate();
@@ -35,9 +53,10 @@ function RegisterPage() {
   const [errors, setErrors] = useState<{ displayName?: string; email?: string; password?: string }>({});
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+    const unsub = onAuthStateChanged(auth, (u) => {
+      if (u) navigate({ to: "/dashboard" });
     });
+    return unsub;
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,39 +70,36 @@ function RegisterPage() {
     }
     setErrors({});
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin,
-        data: { display_name: displayName, role },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-      return;
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(cred.user, { displayName });
+      await ensureUserDoc(cred.user.uid, { display_name: displayName, role, email });
+      toast.success("Account created!");
+      router.invalidate();
+      navigate({ to: "/dashboard" });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Sign-up failed");
+    } finally {
+      setLoading(false);
     }
-    toast.success("Account created — check your email to verify.");
-    router.invalidate();
-    navigate({ to: "/login" });
   };
 
   const handleGoogle = async () => {
-    // Store chosen role so the trigger can use it via metadata isn't available in OAuth flow;
-    // we'll fall back to default 'marketer'. (Role can be changed later.)
     setGoogleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
+    try {
+      const cred = await signInWithPopup(auth, googleProvider);
+      await ensureUserDoc(cred.user.uid, {
+        display_name: cred.user.displayName ?? (cred.user.email?.split("@")[0] ?? "User"),
+        role,
+        email: cred.user.email,
+      });
+      router.invalidate();
+      navigate({ to: "/dashboard" });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Google sign-in failed");
+    } finally {
       setGoogleLoading(false);
-      toast.error("Google sign-in failed");
-      return;
     }
-    if (result.redirected) return;
-    router.invalidate();
-    navigate({ to: "/dashboard" });
   };
 
   return (

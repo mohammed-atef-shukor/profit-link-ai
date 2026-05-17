@@ -1,10 +1,9 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { ProductForm, type ProductFormValues } from "@/components/seller/ProductForm";
-import { createProduct } from "@/lib/products.functions";
+import { createProduct } from "@/lib/products.firestore";
 
 export const Route = createFileRoute("/_authenticated/seller/products/new")({
   head: () => ({ meta: [{ title: "New product — LinkProfit AI" }] }),
@@ -13,13 +12,19 @@ export const Route = createFileRoute("/_authenticated/seller/products/new")({
 
 function NewProductPage() {
   const router = useRouter();
-  const create = useServerFn(createProduct);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (values: ProductFormValues) => {
     setSubmitting(true);
     try {
-      await create({ data: values });
+      await createProduct({
+        title: values.title,
+        description: values.description || null,
+        price: values.price,
+        commission_percent: values.commission_percent,
+        image_url: values.image_url || null,
+        status: values.status,
+      });
       toast.success(values.status === "published" ? "Product published" : "Draft saved");
       router.navigate({ to: "/seller" });
     } catch (e: any) {

@@ -11,7 +11,8 @@ import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "@/integrations/firebase/client";
 
 function NotFoundComponent() {
   return (
@@ -113,11 +114,11 @@ function AuthListener() {
   const router = useRouter();
   const qc = useQueryClient();
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+    const unsub = onAuthStateChanged(auth, () => {
       router.invalidate();
       qc.invalidateQueries();
     });
-    return () => subscription.unsubscribe();
+    return unsub;
   }, [router, qc]);
   return null;
 }
