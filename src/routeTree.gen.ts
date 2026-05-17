@@ -22,8 +22,19 @@ import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMarketerRouteImport } from './routes/_authenticated/marketer'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSellerIndexRouteImport } from './routes/_authenticated/seller.index'
+import { Route as AuthenticatedMarketerIndexRouteImport } from './routes/_authenticated/marketer.index'
 import { Route as RCodeSuccessRouteImport } from './routes/r.$code.success'
 import { Route as RCodeCheckoutRouteImport } from './routes/r.$code.checkout'
+import { Route as AuthenticatedSellerSettingsRouteImport } from './routes/_authenticated/seller.settings'
+import { Route as AuthenticatedSellerSalesRouteImport } from './routes/_authenticated/seller.sales'
+import { Route as AuthenticatedSellerProductsRouteImport } from './routes/_authenticated/seller.products'
+import { Route as AuthenticatedSellerMarketersRouteImport } from './routes/_authenticated/seller.marketers'
+import { Route as AuthenticatedSellerEarningsRouteImport } from './routes/_authenticated/seller.earnings'
+import { Route as AuthenticatedMarketerSettingsRouteImport } from './routes/_authenticated/marketer.settings'
+import { Route as AuthenticatedMarketerSalesRouteImport } from './routes/_authenticated/marketer.sales'
+import { Route as AuthenticatedMarketerMarketplaceRouteImport } from './routes/_authenticated/marketer.marketplace'
+import { Route as AuthenticatedMarketerLinksRouteImport } from './routes/_authenticated/marketer.links'
+import { Route as AuthenticatedMarketerEarningsRouteImport } from './routes/_authenticated/marketer.earnings'
 import { Route as AuthenticatedSellerProductsNewRouteImport } from './routes/_authenticated/seller.products.new'
 import { Route as AuthenticatedSellerProductsProductIdRouteImport } from './routes/_authenticated/seller.products.$productId'
 import { Route as AuthenticatedSellerProductsProductIdAnalyticsRouteImport } from './routes/_authenticated/seller.products.$productId.analytics'
@@ -93,6 +104,12 @@ const AuthenticatedSellerIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSellerRoute,
   } as any)
+const AuthenticatedMarketerIndexRoute =
+  AuthenticatedMarketerIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
 const RCodeSuccessRoute = RCodeSuccessRouteImport.update({
   id: '/success',
   path: '/success',
@@ -103,17 +120,77 @@ const RCodeCheckoutRoute = RCodeCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => RCodeRoute,
 } as any)
+const AuthenticatedSellerSettingsRoute =
+  AuthenticatedSellerSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
+const AuthenticatedSellerSalesRoute =
+  AuthenticatedSellerSalesRouteImport.update({
+    id: '/sales',
+    path: '/sales',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
+const AuthenticatedSellerProductsRoute =
+  AuthenticatedSellerProductsRouteImport.update({
+    id: '/products',
+    path: '/products',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
+const AuthenticatedSellerMarketersRoute =
+  AuthenticatedSellerMarketersRouteImport.update({
+    id: '/marketers',
+    path: '/marketers',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
+const AuthenticatedSellerEarningsRoute =
+  AuthenticatedSellerEarningsRouteImport.update({
+    id: '/earnings',
+    path: '/earnings',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
+const AuthenticatedMarketerSettingsRoute =
+  AuthenticatedMarketerSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
+const AuthenticatedMarketerSalesRoute =
+  AuthenticatedMarketerSalesRouteImport.update({
+    id: '/sales',
+    path: '/sales',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
+const AuthenticatedMarketerMarketplaceRoute =
+  AuthenticatedMarketerMarketplaceRouteImport.update({
+    id: '/marketplace',
+    path: '/marketplace',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
+const AuthenticatedMarketerLinksRoute =
+  AuthenticatedMarketerLinksRouteImport.update({
+    id: '/links',
+    path: '/links',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
+const AuthenticatedMarketerEarningsRoute =
+  AuthenticatedMarketerEarningsRouteImport.update({
+    id: '/earnings',
+    path: '/earnings',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
 const AuthenticatedSellerProductsNewRoute =
   AuthenticatedSellerProductsNewRouteImport.update({
-    id: '/products/new',
-    path: '/products/new',
-    getParentRoute: () => AuthenticatedSellerRoute,
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedSellerProductsRoute,
   } as any)
 const AuthenticatedSellerProductsProductIdRoute =
   AuthenticatedSellerProductsProductIdRouteImport.update({
-    id: '/products/$productId',
-    path: '/products/$productId',
-    getParentRoute: () => AuthenticatedSellerRoute,
+    id: '/$productId',
+    path: '/$productId',
+    getParentRoute: () => AuthenticatedSellerProductsRoute,
   } as any)
 const AuthenticatedSellerProductsProductIdAnalyticsRoute =
   AuthenticatedSellerProductsProductIdAnalyticsRouteImport.update({
@@ -130,12 +207,23 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/marketer': typeof AuthenticatedMarketerRoute
+  '/marketer': typeof AuthenticatedMarketerRouteWithChildren
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/marketer/earnings': typeof AuthenticatedMarketerEarningsRoute
+  '/marketer/links': typeof AuthenticatedMarketerLinksRoute
+  '/marketer/marketplace': typeof AuthenticatedMarketerMarketplaceRoute
+  '/marketer/sales': typeof AuthenticatedMarketerSalesRoute
+  '/marketer/settings': typeof AuthenticatedMarketerSettingsRoute
+  '/seller/earnings': typeof AuthenticatedSellerEarningsRoute
+  '/seller/marketers': typeof AuthenticatedSellerMarketersRoute
+  '/seller/products': typeof AuthenticatedSellerProductsRouteWithChildren
+  '/seller/sales': typeof AuthenticatedSellerSalesRoute
+  '/seller/settings': typeof AuthenticatedSellerSettingsRoute
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
+  '/marketer/': typeof AuthenticatedMarketerIndexRoute
   '/seller/': typeof AuthenticatedSellerIndexRoute
   '/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   '/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -149,11 +237,21 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
-  '/marketer': typeof AuthenticatedMarketerRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/marketer/earnings': typeof AuthenticatedMarketerEarningsRoute
+  '/marketer/links': typeof AuthenticatedMarketerLinksRoute
+  '/marketer/marketplace': typeof AuthenticatedMarketerMarketplaceRoute
+  '/marketer/sales': typeof AuthenticatedMarketerSalesRoute
+  '/marketer/settings': typeof AuthenticatedMarketerSettingsRoute
+  '/seller/earnings': typeof AuthenticatedSellerEarningsRoute
+  '/seller/marketers': typeof AuthenticatedSellerMarketersRoute
+  '/seller/products': typeof AuthenticatedSellerProductsRouteWithChildren
+  '/seller/sales': typeof AuthenticatedSellerSalesRoute
+  '/seller/settings': typeof AuthenticatedSellerSettingsRoute
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
+  '/marketer': typeof AuthenticatedMarketerIndexRoute
   '/seller': typeof AuthenticatedSellerIndexRoute
   '/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   '/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -169,12 +267,23 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/marketer': typeof AuthenticatedMarketerRoute
+  '/_authenticated/marketer': typeof AuthenticatedMarketerRouteWithChildren
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/_authenticated/marketer/earnings': typeof AuthenticatedMarketerEarningsRoute
+  '/_authenticated/marketer/links': typeof AuthenticatedMarketerLinksRoute
+  '/_authenticated/marketer/marketplace': typeof AuthenticatedMarketerMarketplaceRoute
+  '/_authenticated/marketer/sales': typeof AuthenticatedMarketerSalesRoute
+  '/_authenticated/marketer/settings': typeof AuthenticatedMarketerSettingsRoute
+  '/_authenticated/seller/earnings': typeof AuthenticatedSellerEarningsRoute
+  '/_authenticated/seller/marketers': typeof AuthenticatedSellerMarketersRoute
+  '/_authenticated/seller/products': typeof AuthenticatedSellerProductsRouteWithChildren
+  '/_authenticated/seller/sales': typeof AuthenticatedSellerSalesRoute
+  '/_authenticated/seller/settings': typeof AuthenticatedSellerSettingsRoute
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
+  '/_authenticated/marketer/': typeof AuthenticatedMarketerIndexRoute
   '/_authenticated/seller/': typeof AuthenticatedSellerIndexRoute
   '/_authenticated/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   '/_authenticated/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -194,8 +303,19 @@ export interface FileRouteTypes {
     | '/seller'
     | '/products/$productId'
     | '/r/$code'
+    | '/marketer/earnings'
+    | '/marketer/links'
+    | '/marketer/marketplace'
+    | '/marketer/sales'
+    | '/marketer/settings'
+    | '/seller/earnings'
+    | '/seller/marketers'
+    | '/seller/products'
+    | '/seller/sales'
+    | '/seller/settings'
     | '/r/$code/checkout'
     | '/r/$code/success'
+    | '/marketer/'
     | '/seller/'
     | '/seller/products/$productId'
     | '/seller/products/new'
@@ -209,11 +329,21 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/dashboard'
-    | '/marketer'
     | '/products/$productId'
     | '/r/$code'
+    | '/marketer/earnings'
+    | '/marketer/links'
+    | '/marketer/marketplace'
+    | '/marketer/sales'
+    | '/marketer/settings'
+    | '/seller/earnings'
+    | '/seller/marketers'
+    | '/seller/products'
+    | '/seller/sales'
+    | '/seller/settings'
     | '/r/$code/checkout'
     | '/r/$code/success'
+    | '/marketer'
     | '/seller'
     | '/seller/products/$productId'
     | '/seller/products/new'
@@ -232,8 +362,19 @@ export interface FileRouteTypes {
     | '/_authenticated/seller'
     | '/products/$productId'
     | '/r/$code'
+    | '/_authenticated/marketer/earnings'
+    | '/_authenticated/marketer/links'
+    | '/_authenticated/marketer/marketplace'
+    | '/_authenticated/marketer/sales'
+    | '/_authenticated/marketer/settings'
+    | '/_authenticated/seller/earnings'
+    | '/_authenticated/seller/marketers'
+    | '/_authenticated/seller/products'
+    | '/_authenticated/seller/sales'
+    | '/_authenticated/seller/settings'
     | '/r/$code/checkout'
     | '/r/$code/success'
+    | '/_authenticated/marketer/'
     | '/_authenticated/seller/'
     | '/_authenticated/seller/products/$productId'
     | '/_authenticated/seller/products/new'
@@ -344,6 +485,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellerIndexRouteImport
       parentRoute: typeof AuthenticatedSellerRoute
     }
+    '/_authenticated/marketer/': {
+      id: '/_authenticated/marketer/'
+      path: '/'
+      fullPath: '/marketer/'
+      preLoaderRoute: typeof AuthenticatedMarketerIndexRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
     '/r/$code/success': {
       id: '/r/$code/success'
       path: '/success'
@@ -358,19 +506,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RCodeCheckoutRouteImport
       parentRoute: typeof RCodeRoute
     }
+    '/_authenticated/seller/settings': {
+      id: '/_authenticated/seller/settings'
+      path: '/settings'
+      fullPath: '/seller/settings'
+      preLoaderRoute: typeof AuthenticatedSellerSettingsRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
+    '/_authenticated/seller/sales': {
+      id: '/_authenticated/seller/sales'
+      path: '/sales'
+      fullPath: '/seller/sales'
+      preLoaderRoute: typeof AuthenticatedSellerSalesRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
+    '/_authenticated/seller/products': {
+      id: '/_authenticated/seller/products'
+      path: '/products'
+      fullPath: '/seller/products'
+      preLoaderRoute: typeof AuthenticatedSellerProductsRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
+    '/_authenticated/seller/marketers': {
+      id: '/_authenticated/seller/marketers'
+      path: '/marketers'
+      fullPath: '/seller/marketers'
+      preLoaderRoute: typeof AuthenticatedSellerMarketersRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
+    '/_authenticated/seller/earnings': {
+      id: '/_authenticated/seller/earnings'
+      path: '/earnings'
+      fullPath: '/seller/earnings'
+      preLoaderRoute: typeof AuthenticatedSellerEarningsRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
+    '/_authenticated/marketer/settings': {
+      id: '/_authenticated/marketer/settings'
+      path: '/settings'
+      fullPath: '/marketer/settings'
+      preLoaderRoute: typeof AuthenticatedMarketerSettingsRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
+    '/_authenticated/marketer/sales': {
+      id: '/_authenticated/marketer/sales'
+      path: '/sales'
+      fullPath: '/marketer/sales'
+      preLoaderRoute: typeof AuthenticatedMarketerSalesRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
+    '/_authenticated/marketer/marketplace': {
+      id: '/_authenticated/marketer/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketer/marketplace'
+      preLoaderRoute: typeof AuthenticatedMarketerMarketplaceRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
+    '/_authenticated/marketer/links': {
+      id: '/_authenticated/marketer/links'
+      path: '/links'
+      fullPath: '/marketer/links'
+      preLoaderRoute: typeof AuthenticatedMarketerLinksRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
+    '/_authenticated/marketer/earnings': {
+      id: '/_authenticated/marketer/earnings'
+      path: '/earnings'
+      fullPath: '/marketer/earnings'
+      preLoaderRoute: typeof AuthenticatedMarketerEarningsRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
     '/_authenticated/seller/products/new': {
       id: '/_authenticated/seller/products/new'
-      path: '/products/new'
+      path: '/new'
       fullPath: '/seller/products/new'
       preLoaderRoute: typeof AuthenticatedSellerProductsNewRouteImport
-      parentRoute: typeof AuthenticatedSellerRoute
+      parentRoute: typeof AuthenticatedSellerProductsRoute
     }
     '/_authenticated/seller/products/$productId': {
       id: '/_authenticated/seller/products/$productId'
-      path: '/products/$productId'
+      path: '/$productId'
       fullPath: '/seller/products/$productId'
       preLoaderRoute: typeof AuthenticatedSellerProductsProductIdRouteImport
-      parentRoute: typeof AuthenticatedSellerRoute
+      parentRoute: typeof AuthenticatedSellerProductsRoute
     }
     '/_authenticated/seller/products/$productId/analytics': {
       id: '/_authenticated/seller/products/$productId/analytics'
@@ -381,6 +599,29 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedMarketerRouteChildren {
+  AuthenticatedMarketerEarningsRoute: typeof AuthenticatedMarketerEarningsRoute
+  AuthenticatedMarketerLinksRoute: typeof AuthenticatedMarketerLinksRoute
+  AuthenticatedMarketerMarketplaceRoute: typeof AuthenticatedMarketerMarketplaceRoute
+  AuthenticatedMarketerSalesRoute: typeof AuthenticatedMarketerSalesRoute
+  AuthenticatedMarketerSettingsRoute: typeof AuthenticatedMarketerSettingsRoute
+  AuthenticatedMarketerIndexRoute: typeof AuthenticatedMarketerIndexRoute
+}
+
+const AuthenticatedMarketerRouteChildren: AuthenticatedMarketerRouteChildren = {
+  AuthenticatedMarketerEarningsRoute: AuthenticatedMarketerEarningsRoute,
+  AuthenticatedMarketerLinksRoute: AuthenticatedMarketerLinksRoute,
+  AuthenticatedMarketerMarketplaceRoute: AuthenticatedMarketerMarketplaceRoute,
+  AuthenticatedMarketerSalesRoute: AuthenticatedMarketerSalesRoute,
+  AuthenticatedMarketerSettingsRoute: AuthenticatedMarketerSettingsRoute,
+  AuthenticatedMarketerIndexRoute: AuthenticatedMarketerIndexRoute,
+}
+
+const AuthenticatedMarketerRouteWithChildren =
+  AuthenticatedMarketerRoute._addFileChildren(
+    AuthenticatedMarketerRouteChildren,
+  )
 
 interface AuthenticatedSellerProductsProductIdRouteChildren {
   AuthenticatedSellerProductsProductIdAnalyticsRoute: typeof AuthenticatedSellerProductsProductIdAnalyticsRoute
@@ -397,17 +638,40 @@ const AuthenticatedSellerProductsProductIdRouteWithChildren =
     AuthenticatedSellerProductsProductIdRouteChildren,
   )
 
-interface AuthenticatedSellerRouteChildren {
-  AuthenticatedSellerIndexRoute: typeof AuthenticatedSellerIndexRoute
+interface AuthenticatedSellerProductsRouteChildren {
   AuthenticatedSellerProductsProductIdRoute: typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   AuthenticatedSellerProductsNewRoute: typeof AuthenticatedSellerProductsNewRoute
 }
 
+const AuthenticatedSellerProductsRouteChildren: AuthenticatedSellerProductsRouteChildren =
+  {
+    AuthenticatedSellerProductsProductIdRoute:
+      AuthenticatedSellerProductsProductIdRouteWithChildren,
+    AuthenticatedSellerProductsNewRoute: AuthenticatedSellerProductsNewRoute,
+  }
+
+const AuthenticatedSellerProductsRouteWithChildren =
+  AuthenticatedSellerProductsRoute._addFileChildren(
+    AuthenticatedSellerProductsRouteChildren,
+  )
+
+interface AuthenticatedSellerRouteChildren {
+  AuthenticatedSellerEarningsRoute: typeof AuthenticatedSellerEarningsRoute
+  AuthenticatedSellerMarketersRoute: typeof AuthenticatedSellerMarketersRoute
+  AuthenticatedSellerProductsRoute: typeof AuthenticatedSellerProductsRouteWithChildren
+  AuthenticatedSellerSalesRoute: typeof AuthenticatedSellerSalesRoute
+  AuthenticatedSellerSettingsRoute: typeof AuthenticatedSellerSettingsRoute
+  AuthenticatedSellerIndexRoute: typeof AuthenticatedSellerIndexRoute
+}
+
 const AuthenticatedSellerRouteChildren: AuthenticatedSellerRouteChildren = {
+  AuthenticatedSellerEarningsRoute: AuthenticatedSellerEarningsRoute,
+  AuthenticatedSellerMarketersRoute: AuthenticatedSellerMarketersRoute,
+  AuthenticatedSellerProductsRoute:
+    AuthenticatedSellerProductsRouteWithChildren,
+  AuthenticatedSellerSalesRoute: AuthenticatedSellerSalesRoute,
+  AuthenticatedSellerSettingsRoute: AuthenticatedSellerSettingsRoute,
   AuthenticatedSellerIndexRoute: AuthenticatedSellerIndexRoute,
-  AuthenticatedSellerProductsProductIdRoute:
-    AuthenticatedSellerProductsProductIdRouteWithChildren,
-  AuthenticatedSellerProductsNewRoute: AuthenticatedSellerProductsNewRoute,
 }
 
 const AuthenticatedSellerRouteWithChildren =
@@ -415,13 +679,13 @@ const AuthenticatedSellerRouteWithChildren =
 
 interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedMarketerRoute: typeof AuthenticatedMarketerRoute
+  AuthenticatedMarketerRoute: typeof AuthenticatedMarketerRouteWithChildren
   AuthenticatedSellerRoute: typeof AuthenticatedSellerRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedMarketerRoute: AuthenticatedMarketerRoute,
+  AuthenticatedMarketerRoute: AuthenticatedMarketerRouteWithChildren,
   AuthenticatedSellerRoute: AuthenticatedSellerRouteWithChildren,
 }
 

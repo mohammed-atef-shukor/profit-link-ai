@@ -83,6 +83,19 @@ export async function listSalesForSeller(): Promise<Sale[]> {
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sale, "id">) }));
 }
 
+export async function listSalesForMarketer(): Promise<Sale[]> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error("Not signed in");
+  const q = query(
+    collection(db, "sales"),
+    where("marketer_id", "==", uid),
+    orderBy("created_at", "desc"),
+    limit(200),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sale, "id">) }));
+}
+
 export async function listSalesForProduct(productId: string): Promise<Sale[]> {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new Error("Not signed in");

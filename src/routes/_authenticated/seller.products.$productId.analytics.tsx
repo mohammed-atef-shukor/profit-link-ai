@@ -28,7 +28,7 @@ function ProductAnalytics() {
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
-      <Link to="/seller" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+      <Link to="/seller/products" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Back to products
       </Link>
 
