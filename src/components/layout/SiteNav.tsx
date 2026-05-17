@@ -15,6 +15,7 @@ const links = [
 export function SiteNav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const { user } = useFirebaseAuth();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
