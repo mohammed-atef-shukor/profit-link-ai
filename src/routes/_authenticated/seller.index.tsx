@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Package,
@@ -10,8 +11,11 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { listMyProducts } from "@/lib/products.firestore";
-import { listSalesForSeller } from "@/lib/sales.firestore";
+import { subscribeMyProducts, type Product } from "@/lib/products.firestore";
+import { subscribeSalesForSeller, type Sale } from "@/lib/sales.firestore";
+import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
+import { getUserProfilesByIds, displayNameFor } from "@/lib/users.firestore";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated/seller/")({
   head: () => ({ meta: [{ title: "Seller dashboard — LinkProfit AI" }] }),
@@ -19,8 +23,15 @@ export const Route = createFileRoute("/_authenticated/seller/")({
 });
 
 function SellerOverview() {
-  const products = useQuery({ queryKey: ["my-products"], queryFn: listMyProducts });
-  const sales = useQuery({ queryKey: ["seller-sales"], queryFn: listSalesForSeller });
+  const { user } = useFirebaseAuth();
+  const products = useFirestoreSubscription<Product[]>(
+    (next, err) => subscribeMyProducts(next, err),
+    [user?.uid],
+  );
+  const sales = useFirestoreSubscription<Sale[]>(
+    (next, err) => subscribeSalesForSeller(next, err),
+    [user?.uid],
+  );
 
   const ps = products.data ?? [];
   const ss = sales.data ?? [];
@@ -29,13 +40,20 @@ function SellerOverview() {
   const commissions = ss.reduce((s, x) => s + Number(x.commission_amount), 0);
   const recent = ss.slice(0, 6);
 
+  const marketerIds = useMemo(() => Array.from(new Set(recent.map((s) => s.marketer_id))), [recent]);
+  const profiles = useQuery({
+    queryKey: ["user-profiles", marketerIds.sort().join(",")],
+    queryFn: () => getUserProfilesByIds(marketerIds),
+    enabled: marketerIds.length > 0,
+  });
+
   return (
     <main>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">Seller overview</div>
           <h1 className="font-display text-3xl font-bold tracking-tight">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your store at a glance.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Live data from your store.</p>
         </div>
         <Link to="/seller/products/new">
           <Button className="gap-2"><Plus className="size-4" /> New product</Button>
@@ -60,18 +78,21 @@ function SellerOverview() {
             <Empty>No sales yet.</Empty>
           ) : (
             <ul className="divide-y divide-border">
-              {recent.map((s) => (
-                <li key={s.id} className="py-3 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{s.product_title}</div>
-                    <div className="text-xs text-muted-foreground truncate">{s.buyer_name} · {s.buyer_email}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold">${Number(s.price).toFixed(2)}</div>
-                    <div className="text-xs text-muted-foreground">−${Number(s.commission_amount).toFixed(2)} commission</div>
-                  </div>
-                </li>
-              ))}
+              {recent.map((s) => {
+                const name = displayNameFor(profiles.data?.get(s.marketer_id) ?? null, s.marketer_id);
+                return (
+                  <li key={s.id} className="py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{s.product_title}</div>
+                      <div className="text-xs text-muted-foreground truncate">via {name} · buyer {s.buyer_email}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold">${Number(s.price).toFixed(2)}</div>
+                      <div className="text-xs text-muted-foreground">−${Number(s.commission_amount).toFixed(2)} commission</div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </Panel>
@@ -134,4 +155,3 @@ function Panel({ title, action, children }: { title: string; action?: React.Reac
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="py-6 text-center text-sm text-muted-foreground">{children}</div>;
 }
-

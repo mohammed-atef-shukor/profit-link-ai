@@ -1,83 +1,80 @@
-# Split Roles + Full Dashboards (Seller & Marketer)
+# Full Firebase Integration Plan
 
-Today, `/dashboard` already routes by role to `/seller` or `/marketer`, but:
-- There is **no role guard** — a seller can manually visit `/marketer` and vice versa.
-- Each role only has **one page** (no real "dashboard" with multiple sections).
-- The top nav doesn't reflect the logged-in role.
+Most dashboards already read from Firestore. This plan closes the four remaining gaps you selected.
 
-This plan keeps Firebase auth, roles, Firestore services, and all current routes intact, and builds out a real dashboard experience per role behind a strict role guard.
+## 1. Real marketer names/emails (not UIDs)
 
----
+**New helper** `src/lib/users.firestore.ts`:
+- `getUserProfile(uid)` — read `users/{uid}` doc
+- `getUserProfilesByIds(uids[])` — batched parallel `getDoc` calls, returns `Map<uid, {displayName, email, photoURL}>`
 
-## 1. Role guards (security)
+**Updated pages:**
+- `seller.marketers.tsx` — after aggregating sales, fetch all unique `marketer_id` profiles in one query, render name + email instead of truncated UID.
+- `seller.sales.tsx` — add "Marketer" column with the marketer's name (lookup via same hook).
+- `marketer.sales.tsx` — add "Seller" column with seller's name.
 
-Add `beforeLoad` checks that read the user's role from Firestore and redirect mismatches:
+**Profile write on signup:** confirm `register.tsx` writes `{ displayName, email, role, createdAt }` to `users/{uid}` — patch if missing fields.
 
-- `src/routes/_authenticated/seller.tsx` → if role ≠ `seller`/`admin`, redirect to `/marketer`.
-- `src/routes/_authenticated/marketer.tsx` (convert from flat to layout) → if role = `seller`/`admin`, redirect to `/seller`.
+## 2. Editable Settings pages
 
-Helper: `src/lib/role-guard.ts` exposing `requireRole(role)` that fetches role via existing `getUserRole(uid)` and throws `redirect(...)`.
+**New helper** `updateUserProfile(uid, patch)` in `users.firestore.ts` — `updateDoc` on `users/{uid}` with `updated_at: serverTimestamp()`.
 
-## 2. Per-role layout with sidebar
+**`seller.settings.tsx`** — full form (react-hook-form + zod):
+- Display name, store name, store tagline, store logo URL, payout email
+- Saved to `users/{uid}` doc
+- Also updates Firebase Auth `displayName` via `updateProfile(auth.currentUser, …)`
 
-New shared component `src/components/layout/DashboardShell.tsx` — sidebar + topbar + `<Outlet />`. Receives `role` + `nav items`.
+**`marketer.settings.tsx`** — form:
+- Display name, payout email, payout method (PayPal / Bank), payout details (textarea)
+- Same write path
 
-- **Seller sidebar**: Overview · Products · Sales · Marketers · Earnings · Settings
-- **Marketer sidebar**: Overview · Marketplace · My Links · Sales · Earnings · Settings
+Toasts on save; query invalidation for any dashboard reading the profile.
 
-Convert:
-- `src/routes/_authenticated/seller.tsx` → renders `<DashboardShell role="seller">` with `<Outlet/>`.
-- `src/routes/_authenticated/marketer.tsx` → becomes a layout (`marketer.tsx` with Outlet + guard), and current dashboard content moves to `marketer.index.tsx`.
+## 3. Realtime dashboards (onSnapshot)
 
-## 3. Seller dashboard (new pages)
+**New hook** `src/hooks/use-firestore-query.ts`:
+- `useCollectionSnapshot<T>(queryFactory, deps)` — sets up `onSnapshot`, returns `{data, loading, error}`, auto-unsubscribes.
 
-```
-/seller                         → Overview (KPIs + recent activity)
-/seller/products                → current product list (moved from /seller)
-/seller/products/new            → existing
-/seller/products/$id            → existing edit
-/seller/products/$id/analytics  → existing
-/seller/sales                   → all sales across products (buyer, marketer, product, commission, date)
-/seller/marketers               → marketers promoting your products (aggregated from referral_links)
-/seller/earnings                → revenue, commission paid out, net, monthly chart
-/seller/settings                → profile/store settings stub
-```
+**Convert these pages from `useQuery` to the realtime hook:**
+- `seller.index.tsx` (products + sales)
+- `seller.sales.tsx`, `seller.marketers.tsx`, `seller.earnings.tsx`
+- `seller.products.tsx`
+- `seller.products.$productId.analytics.tsx`
+- `marketer.index.tsx`, `marketer.links.tsx`, `marketer.sales.tsx`, `marketer.earnings.tsx`
 
-**Overview KPIs**: total products, published, total clicks, total sales, gross revenue, commissions owed, active marketers. Pulls from `products` + `sales` + `referral_links` (existing collections).
+Marketplace stays on `useQuery` (one-shot list is fine; no need to stream every change).
 
-## 4. Marketer dashboard (new pages)
+Result: a sale recorded in another tab/checkout appears in the dashboard within ~1s with no refresh.
 
-```
-/marketer                → Overview (KPIs + top-performing links + recent sales)
-/marketer/marketplace    → product grid + generate link (moved from current /marketer)
-/marketer/links          → referral links table (moved from current /marketer)
-/marketer/sales          → my sales list (from sales collection where marketer_id = me)
-/marketer/earnings       → commissions earned, pending, paid (mock paid=0), monthly chart
-/marketer/settings       → payout info stub
-```
+## 4. Firebase-backed seller storefront
 
-**Overview KPIs**: total clicks, total sales, total commissions, active links, conversion rate, top 3 products.
+**New public route** `src/routes/store.$sellerSlug.tsx` (and a fallback `store.$uid.tsx`):
+- Reads `users/{uid}` for `store_name`, `store_tagline`, `logo_url`
+- Queries `products` where `seller_id == uid && status == 'published'`, ordered by `created_at desc`
+- Renders branded header + product grid, each card links to existing `/products/$productId`
 
-## 5. Public nav reflects login state
+**Link from products & marketplace** — clicking the seller name on a product detail jumps to that store.
 
-Update `src/components/layout/SiteNav.tsx`:
-- If `useFirebaseAuth().user` exists → show **Dashboard** button (links to `/dashboard`, which auto-routes by role) instead of Login/Get Started.
-- Add a small avatar/initial + dropdown with Logout.
+**Optional slug:** store `store_slug` on the user doc (unique-ish). If empty, fall back to UID in URL.
 
-## 6. Out of scope (preserved as-is)
+## Technical notes
 
-- Firebase auth flow, `/login`, `/register`, `getUserRole`, `users` collection.
-- Existing Firestore services (`products.firestore.ts`, `referrals.firestore.ts`, `sales.firestore.ts`) — only add small read helpers if needed (e.g. `listSalesForSeller`, `listMarketersForSeller`).
-- Public routes: `/`, `/products`, `/products/$id`, `/r/$code`, `/r/$code/checkout`, `/r/$code/success`.
-- All existing buttons, dashboards CRUD, Firestore rules.
+- **No schema migration required**; all new fields live on the existing `users` doc as optional keys.
+- **Firestore rules update needed** (you apply in Firebase Console):
+  ```js
+  match /users/{uid} {
+    allow read: if true;                                  // public storefront + profile joins
+    allow update: if request.auth != null && request.auth.uid == uid;
+    allow create: if request.auth != null && request.auth.uid == uid;
+  }
+  ```
+- `getUserProfilesByIds` batches via `Promise.all(getDoc(...))` — Firestore web SDK has no `in` query >30 ids, parallel `getDoc` is simpler and cache-friendly.
+- Realtime hook listens on mount and tears down on unmount; query keys still mirror existing ones so mutation invalidations remain a no-op once converted.
+- `updateProfile` from `firebase/auth` keeps Auth `displayName` in sync with the Firestore doc.
 
-## 7. Technical notes
+## Out of scope
 
-- New file naming follows TanStack flat dot convention: `seller.sales.tsx`, `marketer.links.tsx`, etc.
-- Charts: lightweight inline SVG bars (no new dep) — keeps bundle lean.
-- Sales aggregation queries paginated to last 100 (Firestore 1000-row limit aware).
-- Charts/aggregations are computed client-side from the existing collections — **no schema changes, no rules changes**.
-
----
-
-Ready to implement on approval.
+- Image upload to Firebase Storage (logos use URL input for now — say the word and I'll add Storage)
+- Payouts processing (still a field-only stub)
+- Admin role / moderation
+- Email notifications

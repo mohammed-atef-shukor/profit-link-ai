@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   Megaphone,
   Link2,
@@ -9,7 +8,9 @@ import {
   ArrowRight,
   TrendingUp,
 } from "lucide-react";
-import { listMyReferralLinks } from "@/lib/referrals.firestore";
+import { subscribeMyReferralLinks, type ReferralLink } from "@/lib/referrals.firestore";
+import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated/marketer/")({
   head: () => ({ meta: [{ title: "Marketer dashboard — LinkProfit AI" }] }),
@@ -17,7 +18,11 @@ export const Route = createFileRoute("/_authenticated/marketer/")({
 });
 
 function MarketerOverview() {
-  const links = useQuery({ queryKey: ["my-referral-links"], queryFn: listMyReferralLinks });
+  const { user } = useFirebaseAuth();
+  const links = useFirestoreSubscription<ReferralLink[]>(
+    (n, e) => subscribeMyReferralLinks(n, e),
+    [user?.uid],
+  );
   const all = links.data ?? [];
 
   const totals = useMemo(() => ({
@@ -36,7 +41,7 @@ function MarketerOverview() {
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">Marketer overview</div>
           <h1 className="font-display text-3xl font-bold tracking-tight">Promote & earn</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your performance at a glance.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Live performance from Firebase.</p>
         </div>
         <Link to="/marketer/marketplace" className="inline-flex items-center gap-2 rounded-full bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant">
           Browse marketplace <ArrowRight className="size-4" />

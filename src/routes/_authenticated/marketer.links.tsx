@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Copy, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { listMyReferralLinks, buildShareUrl } from "@/lib/referrals.firestore";
+import { subscribeMyReferralLinks, buildShareUrl, type ReferralLink } from "@/lib/referrals.firestore";
+import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated/marketer/links")({
   head: () => ({ meta: [{ title: "My Links — Marketer — LinkProfit AI" }] }),
@@ -12,7 +13,11 @@ export const Route = createFileRoute("/_authenticated/marketer/links")({
 });
 
 function MarketerLinks() {
-  const links = useQuery({ queryKey: ["my-referral-links"], queryFn: listMyReferralLinks });
+  const { user } = useFirebaseAuth();
+  const links = useFirestoreSubscription<ReferralLink[]>(
+    (n, e) => subscribeMyReferralLinks(n, e),
+    [user?.uid],
+  );
   const rows = links.data ?? [];
 
   return (
@@ -20,7 +25,7 @@ function MarketerLinks() {
       <div>
         <div className="text-xs font-semibold uppercase tracking-wider text-primary">Marketer</div>
         <h1 className="font-display text-3xl font-bold tracking-tight">My referral links</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Share anywhere to earn commission on each sale.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Share anywhere. Clicks &amp; sales update live.</p>
       </div>
 
       <div className="mt-8 rounded-2xl border border-border bg-surface shadow-soft overflow-hidden">

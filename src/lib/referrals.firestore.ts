@@ -5,6 +5,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  onSnapshot,
   query,
   where,
   orderBy,
@@ -125,4 +126,25 @@ export async function recordClick(linkId: string): Promise<void> {
 export function buildShareUrl(code: string): string {
   if (typeof window === "undefined") return `/r/${code}`;
   return `${window.location.origin}/r/${code}`;
+}
+
+export function subscribeMyReferralLinks(
+  next: (data: ReferralLink[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    onError?.(new Error("Not signed in"));
+    return () => {};
+  }
+  const q = query(
+    collection(db, "referral_links"),
+    where("marketer_id", "==", uid),
+    orderBy("created_at", "desc"),
+  );
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ReferralLink, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
 }

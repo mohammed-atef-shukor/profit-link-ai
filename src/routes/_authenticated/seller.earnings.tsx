@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { DollarSign, TrendingUp, Wallet } from "lucide-react";
-import { listSalesForSeller } from "@/lib/sales.firestore";
+import { subscribeSalesForSeller, type Sale } from "@/lib/sales.firestore";
+import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated/seller/earnings")({
   head: () => ({ meta: [{ title: "Earnings — Seller — LinkProfit AI" }] }),
@@ -10,7 +11,11 @@ export const Route = createFileRoute("/_authenticated/seller/earnings")({
 });
 
 function SellerEarnings() {
-  const sales = useQuery({ queryKey: ["seller-sales"], queryFn: listSalesForSeller });
+  const { user } = useFirebaseAuth();
+  const sales = useFirestoreSubscription<Sale[]>(
+    (n, e) => subscribeSalesForSeller(n, e),
+    [user?.uid],
+  );
   const data = sales.data ?? [];
 
   const totals = useMemo(() => {
@@ -37,7 +42,7 @@ function SellerEarnings() {
       <div>
         <div className="text-xs font-semibold uppercase tracking-wider text-primary">Seller</div>
         <h1 className="font-display text-3xl font-bold tracking-tight">Earnings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Revenue minus marketer commissions.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Revenue minus marketer commissions. Live.</p>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
