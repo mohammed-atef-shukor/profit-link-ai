@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Menu, X, Sparkles } from "lucide-react";
+import { Menu, X, Sparkles, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 const links = [
   { label: "Marketplace", href: "/products" },
