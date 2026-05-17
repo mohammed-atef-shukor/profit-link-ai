@@ -1,27 +1,40 @@
-import { createFileRoute, redirect, Outlet, Link, useRouter } from "@tanstack/react-router";
-import { Sparkles, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute, Outlet, Link, useRouter, useNavigate } from "@tanstack/react-router";
+import { Sparkles, LogOut, Loader2 } from "lucide-react";
+import { useEffect } from "react";
+import { signOut } from "firebase/auth";
 import { toast } from "sonner";
+import { auth } from "@/integrations/firebase/client";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated")({
-  beforeLoad: async ({ location }) => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) {
-      throw redirect({ to: "/login", search: { redirect: location.href } as never });
-    }
-  },
   component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
   const router = useRouter();
+  const navigate = useNavigate();
+  const { user, loading } = useFirebaseAuth();
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate({ to: "/login" });
+    }
+  }, [loading, user, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut(auth);
     toast.success("Signed out");
     router.invalidate();
     router.navigate({ to: "/" });
   };
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-background text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -36,7 +49,7 @@ function AuthenticatedLayout() {
             </span>
           </Link>
           <button
-            onClick={signOut}
+            onClick={handleSignOut}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium hover:bg-muted"
           >
             <LogOut className="size-4" /> Sign out

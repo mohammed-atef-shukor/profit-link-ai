@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { Loader2 } from "lucide-react";
-import { getMyRole } from "@/lib/auth.functions";
+import { useFirebaseAuth, getUserRole } from "@/hooks/use-firebase-auth";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — LinkProfit AI" }] }),
@@ -12,23 +11,23 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function DashboardRouter() {
   const navigate = useNavigate();
-  const fetchRole = useServerFn(getMyRole);
-  const { data, isLoading } = useQuery({
-    queryKey: ["my-role"],
-    queryFn: () => fetchRole(),
+  const { user } = useFirebaseAuth();
+
+  const { data: role, isLoading } = useQuery({
+    queryKey: ["user-role", user?.uid],
+    queryFn: () => getUserRole(user!.uid),
+    enabled: !!user,
   });
 
   useEffect(() => {
-    if (!data) return;
-    if (data.role === "seller") navigate({ to: "/seller" });
-    else if (data.role === "marketer") navigate({ to: "/marketer" });
-    else if (data.role === "admin") navigate({ to: "/seller" });
+    if (isLoading || !user) return;
+    if (role === "seller" || role === "admin") navigate({ to: "/seller" });
     else navigate({ to: "/marketer" });
-  }, [data, navigate]);
+  }, [role, isLoading, user, navigate]);
 
   return (
     <div className="min-h-[60vh] grid place-items-center text-muted-foreground">
-      {isLoading ? <Loader2 className="size-5 animate-spin" /> : "Loading dashboard…"}
+      <Loader2 className="size-5 animate-spin" />
     </div>
   );
 }
