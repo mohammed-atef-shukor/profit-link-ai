@@ -131,3 +131,98 @@ export async function listLinksForProduct(productId: string) {
     commissions: number;
   }>;
 }
+
+export type LinkRow = {
+  id: string;
+  marketer_id: string;
+  code: string;
+  clicks: number;
+  sales: number;
+  commissions: number;
+};
+
+export function subscribeSalesForSeller(
+  next: (data: Sale[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    onError?.(new Error("Not signed in"));
+    return () => {};
+  }
+  const q = query(
+    collection(db, "sales"),
+    where("seller_id", "==", uid),
+    orderBy("created_at", "desc"),
+    limit(200),
+  );
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sale, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
+}
+
+export function subscribeSalesForMarketer(
+  next: (data: Sale[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    onError?.(new Error("Not signed in"));
+    return () => {};
+  }
+  const q = query(
+    collection(db, "sales"),
+    where("marketer_id", "==", uid),
+    orderBy("created_at", "desc"),
+    limit(200),
+  );
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sale, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
+}
+
+export function subscribeSalesForProduct(
+  productId: string,
+  next: (data: Sale[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    onError?.(new Error("Not signed in"));
+    return () => {};
+  }
+  const q = query(
+    collection(db, "sales"),
+    where("product_id", "==", productId),
+    where("seller_id", "==", uid),
+    orderBy("created_at", "desc"),
+    limit(200),
+  );
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Sale, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
+}
+
+export function subscribeLinksForProduct(
+  productId: string,
+  next: (data: LinkRow[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const q = query(
+    collection(db, "referral_links"),
+    where("product_id", "==", productId),
+    orderBy("clicks", "desc"),
+    limit(100),
+  );
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<LinkRow, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
+}
