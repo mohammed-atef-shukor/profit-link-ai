@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Package, Pencil, Trash2, Eye, EyeOff, DollarSign, Percent } from "lucide-react";
+import { Plus, Package, Pencil, Trash2, Eye, EyeOff, DollarSign, Percent, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -123,10 +123,13 @@ function SellerDashboard() {
                       <Button size="sm" variant="ghost" onClick={() => handleToggle(p.id, p.status)} title={p.status === "published" ? "Unpublish" : "Publish"}>
                         {p.status === "published" ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                       </Button>
-                      <Link to="/seller/products/$productId" params={{ productId: p.id }}>
+                      <Link to="/seller/products/$productId/analytics" params={{ productId: p.id }} title="Analytics">
+                        <Button size="sm" variant="ghost"><BarChart3 className="size-4" /></Button>
+                      </Link>
+                      <Link to="/seller/products/$productId" params={{ productId: p.id }} title="Edit">
                         <Button size="sm" variant="ghost"><Pencil className="size-4" /></Button>
                       </Link>
-                      <Button size="sm" variant="ghost" onClick={() => handleDelete(p.id)}>
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(p.id)} title="Delete">
                         <Trash2 className="size-4 text-destructive" />
                       </Button>
                     </div>
