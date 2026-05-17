@@ -109,20 +109,32 @@ export function SiteNav() {
                 </a>
               ))}
               <div className="my-2 h-px bg-border" />
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/60"
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                onClick={() => setOpen(false)}
-                className="rounded-lg bg-gradient-primary px-3 py-2.5 text-center text-sm font-semibold text-primary-foreground"
-              >
-                Get Started
-              </Link>
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg bg-gradient-primary px-3 py-2.5 text-center text-sm font-semibold text-primary-foreground"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted/60"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setOpen(false)}
+                    className="rounded-lg bg-gradient-primary px-3 py-2.5 text-center text-sm font-semibold text-primary-foreground"
+                  >
+                    Get Started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
