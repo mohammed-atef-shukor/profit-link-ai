@@ -11,7 +11,7 @@ import {
 } from "@/lib/products.firestore";
 
 export const Route = createFileRoute("/_authenticated/seller/products")({
-  head: () => ({ meta: [{ title: "Seller dashboard — LinkProfit AI" }] }),
+  head: () => ({ meta: [{ title: "Products — Seller — LinkProfit AI" }] }),
   component: SellerDashboard,
 });
 
