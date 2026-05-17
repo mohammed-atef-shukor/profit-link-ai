@@ -33,6 +33,7 @@ import { Route as AuthenticatedSellerEarningsRouteImport } from './routes/_authe
 import { Route as AuthenticatedMarketerSalesRouteImport } from './routes/_authenticated/marketer.sales'
 import { Route as AuthenticatedMarketerMarketplaceRouteImport } from './routes/_authenticated/marketer.marketplace'
 import { Route as AuthenticatedMarketerLinksRouteImport } from './routes/_authenticated/marketer.links'
+import { Route as AuthenticatedMarketerEarningsRouteImport } from './routes/_authenticated/marketer.earnings'
 import { Route as AuthenticatedSellerProductsNewRouteImport } from './routes/_authenticated/seller.products.new'
 import { Route as AuthenticatedSellerProductsProductIdRouteImport } from './routes/_authenticated/seller.products.$productId'
 import { Route as AuthenticatedSellerProductsProductIdAnalyticsRouteImport } from './routes/_authenticated/seller.products.$productId.analytics'
@@ -166,6 +167,12 @@ const AuthenticatedMarketerLinksRoute =
     path: '/links',
     getParentRoute: () => AuthenticatedMarketerRoute,
   } as any)
+const AuthenticatedMarketerEarningsRoute =
+  AuthenticatedMarketerEarningsRouteImport.update({
+    id: '/earnings',
+    path: '/earnings',
+    getParentRoute: () => AuthenticatedMarketerRoute,
+  } as any)
 const AuthenticatedSellerProductsNewRoute =
   AuthenticatedSellerProductsNewRouteImport.update({
     id: '/new',
@@ -197,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/marketer/earnings': typeof AuthenticatedMarketerEarningsRoute
   '/marketer/links': typeof AuthenticatedMarketerLinksRoute
   '/marketer/marketplace': typeof AuthenticatedMarketerMarketplaceRoute
   '/marketer/sales': typeof AuthenticatedMarketerSalesRoute
@@ -223,6 +231,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/marketer/earnings': typeof AuthenticatedMarketerEarningsRoute
   '/marketer/links': typeof AuthenticatedMarketerLinksRoute
   '/marketer/marketplace': typeof AuthenticatedMarketerMarketplaceRoute
   '/marketer/sales': typeof AuthenticatedMarketerSalesRoute
@@ -253,6 +262,7 @@ export interface FileRoutesById {
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/_authenticated/marketer/earnings': typeof AuthenticatedMarketerEarningsRoute
   '/_authenticated/marketer/links': typeof AuthenticatedMarketerLinksRoute
   '/_authenticated/marketer/marketplace': typeof AuthenticatedMarketerMarketplaceRoute
   '/_authenticated/marketer/sales': typeof AuthenticatedMarketerSalesRoute
@@ -283,6 +293,7 @@ export interface FileRouteTypes {
     | '/seller'
     | '/products/$productId'
     | '/r/$code'
+    | '/marketer/earnings'
     | '/marketer/links'
     | '/marketer/marketplace'
     | '/marketer/sales'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/products/$productId'
     | '/r/$code'
+    | '/marketer/earnings'
     | '/marketer/links'
     | '/marketer/marketplace'
     | '/marketer/sales'
@@ -338,6 +350,7 @@ export interface FileRouteTypes {
     | '/_authenticated/seller'
     | '/products/$productId'
     | '/r/$code'
+    | '/_authenticated/marketer/earnings'
     | '/_authenticated/marketer/links'
     | '/_authenticated/marketer/marketplace'
     | '/_authenticated/marketer/sales'
@@ -536,6 +549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketerLinksRouteImport
       parentRoute: typeof AuthenticatedMarketerRoute
     }
+    '/_authenticated/marketer/earnings': {
+      id: '/_authenticated/marketer/earnings'
+      path: '/earnings'
+      fullPath: '/marketer/earnings'
+      preLoaderRoute: typeof AuthenticatedMarketerEarningsRouteImport
+      parentRoute: typeof AuthenticatedMarketerRoute
+    }
     '/_authenticated/seller/products/new': {
       id: '/_authenticated/seller/products/new'
       path: '/new'
@@ -561,6 +581,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedMarketerRouteChildren {
+  AuthenticatedMarketerEarningsRoute: typeof AuthenticatedMarketerEarningsRoute
   AuthenticatedMarketerLinksRoute: typeof AuthenticatedMarketerLinksRoute
   AuthenticatedMarketerMarketplaceRoute: typeof AuthenticatedMarketerMarketplaceRoute
   AuthenticatedMarketerSalesRoute: typeof AuthenticatedMarketerSalesRoute
@@ -568,6 +589,7 @@ interface AuthenticatedMarketerRouteChildren {
 }
 
 const AuthenticatedMarketerRouteChildren: AuthenticatedMarketerRouteChildren = {
+  AuthenticatedMarketerEarningsRoute: AuthenticatedMarketerEarningsRoute,
   AuthenticatedMarketerLinksRoute: AuthenticatedMarketerLinksRoute,
   AuthenticatedMarketerMarketplaceRoute: AuthenticatedMarketerMarketplaceRoute,
   AuthenticatedMarketerSalesRoute: AuthenticatedMarketerSalesRoute,
