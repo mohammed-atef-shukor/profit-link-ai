@@ -18,6 +18,9 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create account — LinkProfit AI" }] }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    role: s.role === "seller" || s.role === "marketer" ? (s.role as Role) : undefined,
+  }),
   component: RegisterPage,
 });
 
@@ -44,7 +47,8 @@ async function ensureUserDoc(uid: string, payload: { display_name: string; role:
 function RegisterPage() {
   const router = useRouter();
   const navigate = useNavigate();
-  const [role, setRole] = useState<Role>("marketer");
+  const search = Route.useSearch();
+  const [role, setRole] = useState<Role>(search.role ?? "marketer");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

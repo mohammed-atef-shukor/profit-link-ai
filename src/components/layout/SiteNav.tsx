@@ -4,10 +4,11 @@ import { Menu, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { label: "Features", href: "#features" },
-  { label: "Sellers", href: "#sellers" },
-  { label: "Marketers", href: "#marketers" },
-  { label: "AI Assistant", href: "#ai" },
+  { label: "Marketplace", href: "/products" },
+  { label: "Features", href: "/#features" },
+  { label: "Sellers", href: "/#sellers" },
+  { label: "Marketers", href: "/#marketers" },
+  { label: "AI Assistant", href: "/#ai" },
 ];
 
 export function SiteNav() {
