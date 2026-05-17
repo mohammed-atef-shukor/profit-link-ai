@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as AuthenticatedSellerRouteImport } from './routes/_authenticated/seller'
 import { Route as AuthenticatedMarketerRouteImport } from './routes/_authenticated/marketer'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -49,6 +50,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RCodeRoute = RCodeRouteImport.update({
+  id: '/r/$code',
+  path: '/r/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedSellerRoute = AuthenticatedSellerRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/marketer': typeof AuthenticatedMarketerRoute
   '/seller': typeof AuthenticatedSellerRouteWithChildren
+  '/r/$code': typeof RCodeRoute
   '/seller/': typeof AuthenticatedSellerIndexRoute
   '/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRoute
   '/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/marketer': typeof AuthenticatedMarketerRoute
+  '/r/$code': typeof RCodeRoute
   '/seller': typeof AuthenticatedSellerIndexRoute
   '/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRoute
   '/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -121,6 +129,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/marketer': typeof AuthenticatedMarketerRoute
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
+  '/r/$code': typeof RCodeRoute
   '/_authenticated/seller/': typeof AuthenticatedSellerIndexRoute
   '/_authenticated/seller/products/$productId': typeof AuthenticatedSellerProductsProductIdRoute
   '/_authenticated/seller/products/new': typeof AuthenticatedSellerProductsNewRoute
@@ -136,6 +145,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/marketer'
     | '/seller'
+    | '/r/$code'
     | '/seller/'
     | '/seller/products/$productId'
     | '/seller/products/new'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/dashboard'
     | '/marketer'
+    | '/r/$code'
     | '/seller'
     | '/seller/products/$productId'
     | '/seller/products/new'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/marketer'
     | '/_authenticated/seller'
+    | '/r/$code'
     | '/_authenticated/seller/'
     | '/_authenticated/seller/products/$productId'
     | '/_authenticated/seller/products/new'
@@ -174,6 +186,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  RCodeRoute: typeof RCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -218,6 +231,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/r/$code': {
+      id: '/r/$code'
+      path: '/r/$code'
+      fullPath: '/r/$code'
+      preLoaderRoute: typeof RCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/seller': {
@@ -304,6 +324,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  RCodeRoute: RCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
