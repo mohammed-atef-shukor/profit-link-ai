@@ -74,6 +74,7 @@ function Hero() {
           <div className="mt-9 flex flex-wrap justify-center gap-3">
             <Link
               to="/register"
+              search={{ role: "seller" }}
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-95 active:scale-[0.98] transition"
             >
               Start as Seller
@@ -81,16 +82,17 @@ function Hero() {
             </Link>
             <Link
               to="/register"
+              search={{ role: "marketer" }}
               className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-6 py-3 text-sm font-semibold text-foreground hover:bg-muted transition"
             >
               Start as Marketer
             </Link>
-            <a
-              href="#features"
+            <Link
+              to="/products"
               className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-foreground/80 hover:text-foreground transition"
             >
               Explore Marketplace
-            </a>
+            </Link>
           </div>
 
           <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
