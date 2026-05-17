@@ -101,3 +101,38 @@ export async function deleteProduct(id: string): Promise<void> {
   requireUid();
   await deleteDoc(doc(db, "products", id));
 }
+
+export function subscribeMyProducts(
+  next: (data: Product[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const uid = auth.currentUser?.uid;
+  if (!uid) {
+    onError?.(new Error("Not signed in"));
+    return () => {};
+  }
+  const q = query(productsCol(), where("seller_id", "==", uid), orderBy("created_at", "desc"));
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Product, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
+}
+
+export function subscribePublishedProductsBySeller(
+  sellerId: string,
+  next: (data: Product[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const q = query(
+    productsCol(),
+    where("seller_id", "==", sellerId),
+    where("status", "==", "published"),
+    orderBy("created_at", "desc"),
+  );
+  return onSnapshot(
+    q,
+    (snap) => next(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Product, "id">) }))),
+    (e) => onError?.(e as Error),
+  );
+}
