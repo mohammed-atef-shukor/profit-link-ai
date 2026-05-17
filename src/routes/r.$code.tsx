@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Loader2, ExternalLink, AlertCircle } from "lucide-react";
+import { Loader2, ArrowRight, AlertCircle } from "lucide-react";
 import { getLinkByCode, recordClick, getPublishedProduct } from "@/lib/referrals.firestore";
 import type { Product } from "@/lib/products.firestore";
 
@@ -11,6 +11,7 @@ export const Route = createFileRoute("/r/$code")({
 
 function ReferralRedirect() {
   const { code } = Route.useParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "ok" | "missing">("loading");
   const [product, setProduct] = useState<Product | null>(null);
 
@@ -85,13 +86,12 @@ function ReferralRedirect() {
           )}
           <div className="mt-4 flex items-center justify-between">
             <div className="text-2xl font-bold">${Number(product.price).toFixed(2)}</div>
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
+            <button
+              onClick={() => navigate({ to: "/r/$code/checkout", params: { code } })}
               className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-90"
             >
-              Continue to checkout <ExternalLink className="size-4" />
-            </a>
+              Continue to checkout <ArrowRight className="size-4" />
+            </button>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
             Click tracked. Sale & commission will be credited to the referring marketer.
