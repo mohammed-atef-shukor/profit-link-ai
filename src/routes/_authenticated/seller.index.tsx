@@ -4,7 +4,6 @@ import {
   Package,
   ShoppingBag,
   DollarSign,
-  Users,
   MousePointerClick,
   TrendingUp,
   Plus,
