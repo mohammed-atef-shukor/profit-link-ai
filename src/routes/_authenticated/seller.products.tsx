@@ -50,7 +50,7 @@ function SellerDashboard() {
   };
 
   return (
-    <main className="mx-auto max-w-7xl px-6 py-10">
+    <main>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">Seller workspace</div>
