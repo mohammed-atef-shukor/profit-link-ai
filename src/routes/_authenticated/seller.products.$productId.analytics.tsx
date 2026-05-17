@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, MousePointerClick, ShoppingBag, DollarSign, Users } from "lucide-react";
 import { listSalesForProduct, listLinksForProduct } from "@/lib/sales.firestore";
 import { getProduct } from "@/lib/products.firestore";
+import { getUserProfilesByIds, displayNameFor } from "@/lib/users.firestore";
 
 export const Route = createFileRoute("/_authenticated/seller/products/$productId/analytics")({
   head: () => ({ meta: [{ title: "Product analytics — LinkProfit AI" }] }),
@@ -14,6 +16,13 @@ function ProductAnalytics() {
   const product = useQuery({ queryKey: ["product", productId], queryFn: () => getProduct(productId) });
   const sales = useQuery({ queryKey: ["sales-for", productId], queryFn: () => listSalesForProduct(productId) });
   const links = useQuery({ queryKey: ["links-for", productId], queryFn: () => listLinksForProduct(productId) });
+
+  const ids = useMemo(() => (links.data ?? []).map((l) => l.marketer_id), [links.data]);
+  const profiles = useQuery({
+    queryKey: ["user-profiles", ids.sort().join(",")],
+    queryFn: () => getUserProfilesByIds(ids),
+    enabled: ids.length > 0,
+  });
 
   const totals = (() => {
     const ls = links.data ?? [];
@@ -65,7 +74,7 @@ function ProductAnalytics() {
               <tbody>
                 {(links.data ?? []).map((l) => (
                   <tr key={l.id} className="border-t border-border">
-                    <td className="py-3 font-mono text-xs">{l.marketer_id.slice(0, 10)}…</td>
+                    <td className="py-3">{displayNameFor(profiles.data?.get(l.marketer_id) ?? null, l.marketer_id)}</td>
                     <td className="py-3 text-right">{l.clicks}</td>
                     <td className="py-3 text-right">{l.sales}</td>
                     <td className="py-3 text-right font-semibold text-primary">${(l.commissions || 0).toFixed(2)}</td>
