@@ -9,9 +9,7 @@ import { db } from "@/integrations/firebase/client";
 import type { Product } from "@/lib/products.firestore";
 
 export const Route = createFileRoute("/store/$uid")({
-  head: ({ loaderData }) => ({
-    meta: [{ title: loaderData?.profile?.store_name ?? loaderData?.profile?.display_name ?? "Store" }],
-  }),
+  head: () => ({ meta: [{ title: "Store — LinkProfit AI" }] }),
   component: StorePage,
 });
 
