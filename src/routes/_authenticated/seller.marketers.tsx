@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
-import { subscribeSalesForSeller } from "@/lib/sales.firestore";
+import { subscribeSalesForSeller, type Sale } from "@/lib/sales.firestore";
 import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { getUserProfilesByIds, displayNameFor } from "@/lib/users.firestore";
@@ -22,7 +22,7 @@ type Agg = {
 
 function SellerMarketers() {
   const { user } = useFirebaseAuth();
-  const sales = useFirestoreSubscription(
+  const sales = useFirestoreSubscription<Sale[]>(
     (n, e) => subscribeSalesForSeller(n, e),
     [user?.uid],
   );

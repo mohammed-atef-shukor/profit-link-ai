@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Copy, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { subscribeMyReferralLinks, buildShareUrl } from "@/lib/referrals.firestore";
+import { subscribeMyReferralLinks, buildShareUrl, type ReferralLink } from "@/lib/referrals.firestore";
 import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/marketer/links")({
 
 function MarketerLinks() {
   const { user } = useFirebaseAuth();
-  const links = useFirestoreSubscription(
+  const links = useFirestoreSubscription<ReferralLink[]>(
     (n, e) => subscribeMyReferralLinks(n, e),
     [user?.uid],
   );

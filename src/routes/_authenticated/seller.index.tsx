@@ -11,8 +11,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { subscribeMyProducts } from "@/lib/products.firestore";
-import { subscribeSalesForSeller } from "@/lib/sales.firestore";
+import { subscribeMyProducts, type Product } from "@/lib/products.firestore";
+import { subscribeSalesForSeller, type Sale } from "@/lib/sales.firestore";
 import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
 import { getUserProfilesByIds, displayNameFor } from "@/lib/users.firestore";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
@@ -24,11 +24,11 @@ export const Route = createFileRoute("/_authenticated/seller/")({
 
 function SellerOverview() {
   const { user } = useFirebaseAuth();
-  const products = useFirestoreSubscription(
+  const products = useFirestoreSubscription<Product[]>(
     (next, err) => subscribeMyProducts(next, err),
     [user?.uid],
   );
-  const sales = useFirestoreSubscription(
+  const sales = useFirestoreSubscription<Sale[]>(
     (next, err) => subscribeSalesForSeller(next, err),
     [user?.uid],
   );

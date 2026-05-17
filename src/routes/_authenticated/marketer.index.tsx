@@ -8,7 +8,7 @@ import {
   ArrowRight,
   TrendingUp,
 } from "lucide-react";
-import { subscribeMyReferralLinks } from "@/lib/referrals.firestore";
+import { subscribeMyReferralLinks, type ReferralLink } from "@/lib/referrals.firestore";
 import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/marketer/")({
 
 function MarketerOverview() {
   const { user } = useFirebaseAuth();
-  const links = useFirestoreSubscription(
+  const links = useFirestoreSubscription<ReferralLink[]>(
     (n, e) => subscribeMyReferralLinks(n, e),
     [user?.uid],
   );

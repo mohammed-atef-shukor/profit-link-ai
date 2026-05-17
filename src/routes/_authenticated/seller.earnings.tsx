@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { DollarSign, TrendingUp, Wallet } from "lucide-react";
-import { subscribeSalesForSeller } from "@/lib/sales.firestore";
+import { subscribeSalesForSeller, type Sale } from "@/lib/sales.firestore";
 import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/seller/earnings")({
 
 function SellerEarnings() {
   const { user } = useFirebaseAuth();
-  const sales = useFirestoreSubscription(
+  const sales = useFirestoreSubscription<Sale[]>(
     (n, e) => subscribeSalesForSeller(n, e),
     [user?.uid],
   );

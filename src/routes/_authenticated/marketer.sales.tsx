@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ShoppingBag } from "lucide-react";
-import { subscribeSalesForMarketer } from "@/lib/sales.firestore";
+import { subscribeSalesForMarketer, type Sale } from "@/lib/sales.firestore";
 import { useFirestoreSubscription } from "@/hooks/use-firestore-subscription";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { getUserProfilesByIds, displayNameFor } from "@/lib/users.firestore";
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/marketer/sales")({
 
 function MarketerSales() {
   const { user } = useFirebaseAuth();
-  const sales = useFirestoreSubscription(
+  const sales = useFirestoreSubscription<Sale[]>(
     (n, e) => subscribeSalesForMarketer(n, e),
     [user?.uid],
   );
