@@ -24,6 +24,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSellerIndexRouteImport } from './routes/_authenticated/seller.index'
 import { Route as RCodeSuccessRouteImport } from './routes/r.$code.success'
 import { Route as RCodeCheckoutRouteImport } from './routes/r.$code.checkout'
+import { Route as AuthenticatedSellerProductsRouteImport } from './routes/_authenticated/seller.products'
 import { Route as AuthenticatedSellerProductsNewRouteImport } from './routes/_authenticated/seller.products.new'
 import { Route as AuthenticatedSellerProductsProductIdRouteImport } from './routes/_authenticated/seller.products.$productId'
 import { Route as AuthenticatedSellerProductsProductIdAnalyticsRouteImport } from './routes/_authenticated/seller.products.$productId.analytics'
@@ -103,17 +104,23 @@ const RCodeCheckoutRoute = RCodeCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => RCodeRoute,
 } as any)
+const AuthenticatedSellerProductsRoute =
+  AuthenticatedSellerProductsRouteImport.update({
+    id: '/products',
+    path: '/products',
+    getParentRoute: () => AuthenticatedSellerRoute,
+  } as any)
 const AuthenticatedSellerProductsNewRoute =
   AuthenticatedSellerProductsNewRouteImport.update({
-    id: '/products/new',
-    path: '/products/new',
-    getParentRoute: () => AuthenticatedSellerRoute,
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedSellerProductsRoute,
   } as any)
 const AuthenticatedSellerProductsProductIdRoute =
   AuthenticatedSellerProductsProductIdRouteImport.update({
-    id: '/products/$productId',
-    path: '/products/$productId',
-    getParentRoute: () => AuthenticatedSellerRoute,
+    id: '/$productId',
+    path: '/$productId',
+    getParentRoute: () => AuthenticatedSellerProductsRoute,
   } as any)
 const AuthenticatedSellerProductsProductIdAnalyticsRoute =
   AuthenticatedSellerProductsProductIdAnalyticsRouteImport.update({
@@ -134,6 +141,7 @@ export interface FileRoutesByFullPath {
   '/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/seller/products': typeof AuthenticatedSellerProductsRouteWithChildren
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
   '/seller/': typeof AuthenticatedSellerIndexRoute
@@ -152,6 +160,7 @@ export interface FileRoutesByTo {
   '/marketer': typeof AuthenticatedMarketerRoute
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/seller/products': typeof AuthenticatedSellerProductsRouteWithChildren
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
   '/seller': typeof AuthenticatedSellerIndexRoute
@@ -173,6 +182,7 @@ export interface FileRoutesById {
   '/_authenticated/seller': typeof AuthenticatedSellerRouteWithChildren
   '/products/$productId': typeof ProductsProductIdRoute
   '/r/$code': typeof RCodeRouteWithChildren
+  '/_authenticated/seller/products': typeof AuthenticatedSellerProductsRouteWithChildren
   '/r/$code/checkout': typeof RCodeCheckoutRoute
   '/r/$code/success': typeof RCodeSuccessRoute
   '/_authenticated/seller/': typeof AuthenticatedSellerIndexRoute
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/seller'
     | '/products/$productId'
     | '/r/$code'
+    | '/seller/products'
     | '/r/$code/checkout'
     | '/r/$code/success'
     | '/seller/'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/marketer'
     | '/products/$productId'
     | '/r/$code'
+    | '/seller/products'
     | '/r/$code/checkout'
     | '/r/$code/success'
     | '/seller'
@@ -232,6 +244,7 @@ export interface FileRouteTypes {
     | '/_authenticated/seller'
     | '/products/$productId'
     | '/r/$code'
+    | '/_authenticated/seller/products'
     | '/r/$code/checkout'
     | '/r/$code/success'
     | '/_authenticated/seller/'
@@ -358,19 +371,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RCodeCheckoutRouteImport
       parentRoute: typeof RCodeRoute
     }
+    '/_authenticated/seller/products': {
+      id: '/_authenticated/seller/products'
+      path: '/products'
+      fullPath: '/seller/products'
+      preLoaderRoute: typeof AuthenticatedSellerProductsRouteImport
+      parentRoute: typeof AuthenticatedSellerRoute
+    }
     '/_authenticated/seller/products/new': {
       id: '/_authenticated/seller/products/new'
-      path: '/products/new'
+      path: '/new'
       fullPath: '/seller/products/new'
       preLoaderRoute: typeof AuthenticatedSellerProductsNewRouteImport
-      parentRoute: typeof AuthenticatedSellerRoute
+      parentRoute: typeof AuthenticatedSellerProductsRoute
     }
     '/_authenticated/seller/products/$productId': {
       id: '/_authenticated/seller/products/$productId'
-      path: '/products/$productId'
+      path: '/$productId'
       fullPath: '/seller/products/$productId'
       preLoaderRoute: typeof AuthenticatedSellerProductsProductIdRouteImport
-      parentRoute: typeof AuthenticatedSellerRoute
+      parentRoute: typeof AuthenticatedSellerProductsRoute
     }
     '/_authenticated/seller/products/$productId/analytics': {
       id: '/_authenticated/seller/products/$productId/analytics'
@@ -397,17 +417,32 @@ const AuthenticatedSellerProductsProductIdRouteWithChildren =
     AuthenticatedSellerProductsProductIdRouteChildren,
   )
 
-interface AuthenticatedSellerRouteChildren {
-  AuthenticatedSellerIndexRoute: typeof AuthenticatedSellerIndexRoute
+interface AuthenticatedSellerProductsRouteChildren {
   AuthenticatedSellerProductsProductIdRoute: typeof AuthenticatedSellerProductsProductIdRouteWithChildren
   AuthenticatedSellerProductsNewRoute: typeof AuthenticatedSellerProductsNewRoute
 }
 
+const AuthenticatedSellerProductsRouteChildren: AuthenticatedSellerProductsRouteChildren =
+  {
+    AuthenticatedSellerProductsProductIdRoute:
+      AuthenticatedSellerProductsProductIdRouteWithChildren,
+    AuthenticatedSellerProductsNewRoute: AuthenticatedSellerProductsNewRoute,
+  }
+
+const AuthenticatedSellerProductsRouteWithChildren =
+  AuthenticatedSellerProductsRoute._addFileChildren(
+    AuthenticatedSellerProductsRouteChildren,
+  )
+
+interface AuthenticatedSellerRouteChildren {
+  AuthenticatedSellerProductsRoute: typeof AuthenticatedSellerProductsRouteWithChildren
+  AuthenticatedSellerIndexRoute: typeof AuthenticatedSellerIndexRoute
+}
+
 const AuthenticatedSellerRouteChildren: AuthenticatedSellerRouteChildren = {
+  AuthenticatedSellerProductsRoute:
+    AuthenticatedSellerProductsRouteWithChildren,
   AuthenticatedSellerIndexRoute: AuthenticatedSellerIndexRoute,
-  AuthenticatedSellerProductsProductIdRoute:
-    AuthenticatedSellerProductsProductIdRouteWithChildren,
-  AuthenticatedSellerProductsNewRoute: AuthenticatedSellerProductsNewRoute,
 }
 
 const AuthenticatedSellerRouteWithChildren =
@@ -466,3 +501,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
