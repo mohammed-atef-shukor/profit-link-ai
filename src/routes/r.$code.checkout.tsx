@@ -1,13 +1,15 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Loader2, AlertCircle, Lock, CreditCard } from "lucide-react";
 import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import { getLinkByCode, getPublishedProduct } from "@/lib/referrals.firestore";
-import { recordSale } from "@/lib/sales.firestore";
+import { recordGuestCheckout } from "@/lib/sales.firestore";
 
 export const Route = createFileRoute("/r/$code/checkout")({
   head: () => ({ meta: [{ title: "Checkout — LinkProfit AI" }] }),
@@ -39,23 +41,20 @@ function CheckoutPage() {
 
   const sale = useMutation({
     mutationFn: async () => {
-      const link = linkQ.data!;
-      const product = productQ.data!;
-      await recordSale({
-        product_id: product.id,
-        product_title: product.title,
-        seller_id: product.seller_id,
-        marketer_id: link.marketer_id,
-        referral_link_id: link.id,
-        referral_code: link.code,
-        buyer_name: name,
-        buyer_email: email,
-        price: Number(product.price),
-        commission_percent: Number(product.commission_percent),
-      });
+      if (!linkQ.data || !productQ.data) {
+        throw new Error("Checkout data is still loading. Please try again.");
+      }
+      await recordGuestCheckout(code, name, email);
     },
-    onSuccess: () => navigate({ to: "/r/$code/success", params: { code } }),
-    onError: (e: any) => setErrors({ email: e?.message ?? "Failed to record purchase" }),
+    onSuccess: () => {
+      toast.success("Purchase confirmed!");
+      navigate({ to: "/r/$code/success", params: { code }, replace: true });
+    },
+    onError: (e) => {
+      const message = getFirebaseErrorMessage(e, "Failed to record purchase");
+      setErrors({ email: message });
+      toast.error(message);
+    },
   });
 
   const onSubmit = (e: React.FormEvent) => {
@@ -68,6 +67,10 @@ function CheckoutPage() {
       return;
     }
     setErrors({});
+    if (!linkQ.data || !productQ.data) {
+      toast.error("Checkout is still loading. Please wait a moment.");
+      return;
+    }
     sale.mutate();
   };
 
@@ -123,7 +126,8 @@ function CheckoutPage() {
         <section className="rounded-2xl border border-border bg-surface p-6 shadow-soft">
           <h1 className="font-display text-2xl font-bold tracking-tight">Checkout</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Demo checkout — your purchase is recorded and the referring marketer earns commission.
+            Guest checkout — no account or login required. Your purchase is recorded and the referring
+            marketer earns commission.
           </p>
 
           <form onSubmit={onSubmit} className="mt-6 space-y-4">

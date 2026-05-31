@@ -1,0 +1,70 @@
+{
+  "$schema": "internal/firestore-index-manifest",
+  "description": "Canonical composite indexes required by app queries. Kept in sync with src/lib/*.firestore.ts and store.$uid.tsx. Run: npm run firebase:audit:indexes",
+  "indexes": [
+    {
+      "collectionGroup": "products",
+      "fields": ["seller_id:ASC", "created_at:DESC"],
+      "usedBy": ["listMyProducts", "subscribeMyProducts", "seller products dashboard"]
+    },
+    {
+      "collectionGroup": "products",
+      "fields": ["status:ASC", "created_at:DESC"],
+      "usedBy": ["listPublishedProducts", "marketer marketplace"]
+    },
+    {
+      "collectionGroup": "products",
+      "fields": ["seller_id:ASC", "status:ASC", "created_at:DESC"],
+      "usedBy": ["subscribePublishedProductsBySeller", "store.$uid public store page"]
+    },
+    {
+      "collectionGroup": "referral_links",
+      "fields": ["marketer_id:ASC", "created_at:DESC"],
+      "usedBy": ["listMyReferralLinks", "subscribeMyReferralLinks", "marketer links dashboard"]
+    },
+    {
+      "collectionGroup": "referral_links",
+      "fields": ["marketer_id:ASC", "product_id:ASC"],
+      "usedBy": ["findMyLinkForProduct", "createReferralLink dedupe"]
+    },
+    {
+      "collectionGroup": "referral_links",
+      "fields": ["product_id:ASC", "clicks:DESC"],
+      "usedBy": ["listLinksForProduct", "subscribeLinksForProduct", "product analytics"]
+    },
+    {
+      "collectionGroup": "referral_links",
+      "fields": ["seller_id:ASC", "created_at:DESC"],
+      "usedBy": ["subscribeReferralLinksForSeller", "seller marketers page"]
+    },
+    {
+      "collectionGroup": "referral_links",
+      "fields": ["product_id:ASC", "created_at:DESC"],
+      "usedBy": ["subscribeReferralLinksForSeller legacy product_id in fallback"]
+    },
+    {
+      "collectionGroup": "sales",
+      "fields": ["seller_id:ASC", "created_at:DESC"],
+      "usedBy": ["listSalesForSeller", "subscribeSalesForSeller", "seller sales/earnings/dashboard"]
+    },
+    {
+      "collectionGroup": "sales",
+      "fields": ["marketer_id:ASC", "created_at:DESC"],
+      "usedBy": ["listSalesForMarketer", "subscribeSalesForMarketer", "marketer sales/earnings"]
+    },
+    {
+      "collectionGroup": "sales",
+      "fields": ["product_id:ASC", "seller_id:ASC", "created_at:DESC"],
+      "usedBy": ["listSalesForProduct", "subscribeSalesForProduct", "product analytics sales"]
+    }
+  ],
+  "singleFieldQueries": [
+    {
+      "collectionGroup": "referral_links",
+      "field": "code",
+      "filters": ["code ==", "limit(1)"],
+      "usedBy": ["getLinkByCode", "public /r/:code redirect"],
+      "note": "Uses Firestore automatic single-field index; optional fieldOverride in firestore.indexes.json"
+    }
+  ]
+}

@@ -1,26 +1,22 @@
-import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, Mail, Lock, User, Store, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import {
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  updateProfile,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { auth, db, googleProvider } from "@/integrations/firebase/client";
+import { useAuth, type SignupRole } from "@/hooks/useAuth";
+import { redirectIfAuthenticated, roleHomePath } from "@/lib/auth-guard";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import { Field, GoogleIcon } from "./login";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/register")({
   head: () => ({ meta: [{ title: "Create account — LinkProfit AI" }] }),
   validateSearch: (s: Record<string, unknown>) => ({
-    role: s.role === "seller" || s.role === "marketer" ? (s.role as Role) : undefined,
+    role: s.role === "seller" || s.role === "marketer" ? (s.role as SignupRole) : undefined,
   }),
+  beforeLoad: redirectIfAuthenticated,
   component: RegisterPage,
 });
 
@@ -30,77 +26,53 @@ const schema = z.object({
   password: z.string().min(6, "At least 6 characters"),
 });
 
-type Role = "seller" | "marketer";
-
-async function ensureUserDoc(uid: string, payload: { display_name: string; role: Role; email: string | null }) {
-  const ref = doc(db, "users", uid);
-  const snap = await getDoc(ref);
-  if (snap.exists()) return;
-  await setDoc(ref, {
-    display_name: payload.display_name,
-    email: payload.email,
-    role: payload.role,
-    created_at: serverTimestamp(),
-  });
-}
-
 function RegisterPage() {
-  const router = useRouter();
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const [role, setRole] = useState<Role>(search.role ?? "marketer");
+  const { currentUser, loading, role, roleLoading, signup, googleLogin } = useAuth();
+  const [signupRole, setSignupRole] = useState<SignupRole>(search.role ?? "marketer");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [errors, setErrors] = useState<{ displayName?: string; email?: string; password?: string }>({});
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (u) navigate({ to: "/dashboard" });
-    });
-    return unsub;
-  }, [navigate]);
+    if (!loading && currentUser) {
+      navigate({ to: "/dashboard" });
+    }
+  }, [loading, currentUser, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = schema.safeParse({ displayName, email, password });
     if (!parsed.success) {
       const errs: typeof errors = {};
-      parsed.error.issues.forEach((i) => { errs[i.path[0] as keyof typeof errs] = i.message; });
+      parsed.error.issues.forEach((i) => {
+        errs[i.path[0] as keyof typeof errs] = i.message;
+      });
       setErrors(errs);
       return;
     }
     setErrors({});
-    setLoading(true);
+    setSubmitting(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(cred.user, { displayName });
-      await ensureUserDoc(cred.user.uid, { display_name: displayName, role, email });
+      await signup({ email, password, displayName, role: signupRole });
       toast.success("Account created!");
-      router.invalidate();
-      navigate({ to: "/dashboard" });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Sign-up failed");
+    } catch (e) {
+      toast.error(getFirebaseErrorMessage(e, "Sign-up failed"));
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
     try {
-      const cred = await signInWithPopup(auth, googleProvider);
-      await ensureUserDoc(cred.user.uid, {
-        display_name: cred.user.displayName ?? (cred.user.email?.split("@")[0] ?? "User"),
-        role,
-        email: cred.user.email,
-      });
-      router.invalidate();
-      navigate({ to: "/dashboard" });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Google sign-in failed");
+      await googleLogin(signupRole);
+    } catch (e) {
+      toast.error(getFirebaseErrorMessage(e, "Google sign-in failed"));
     } finally {
       setGoogleLoading(false);
     }
@@ -113,13 +85,15 @@ function RegisterPage() {
           <label className="text-sm font-medium">I want to…</label>
           <div className="mt-2 grid grid-cols-2 gap-3">
             <RoleCard
-              active={role === "seller"} onClick={() => setRole("seller")}
+              active={signupRole === "seller"}
+              onClick={() => setSignupRole("seller")}
               icon={<Store className="size-5" />}
               title="Sell products"
               desc="List products & recruit affiliates"
             />
             <RoleCard
-              active={role === "marketer"} onClick={() => setRole("marketer")}
+              active={signupRole === "marketer"}
+              onClick={() => setSignupRole("marketer")}
               icon={<Megaphone className="size-5" />}
               title="Promote & earn"
               desc="Share links, earn commissions"
@@ -138,45 +112,60 @@ function RegisterPage() {
         </button>
 
         <div className="relative my-2">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-          <div className="relative flex justify-center"><span className="bg-background px-3 text-xs text-muted-foreground">or with email</span></div>
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-3 text-xs text-muted-foreground">or with email</span>
+          </div>
         </div>
 
         <Field label="Full name" icon={<User className="size-4" />} error={errors.displayName}>
           <input
-            value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Jane Doe" autoComplete="name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Jane Doe"
+            autoComplete="name"
             className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/70"
           />
         </Field>
 
         <Field label="Email" icon={<Mail className="size-4" />} error={errors.email}>
           <input
-            type="email" autoComplete="email" value={email}
-            onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
             className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/70"
           />
         </Field>
 
         <Field label="Password" icon={<Lock className="size-4" />} error={errors.password}>
           <input
-            type="password" autoComplete="new-password" value={password}
-            onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
             className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/70"
           />
         </Field>
 
         <button
-          type="submit" disabled={loading}
+          type="submit"
+          disabled={submitting}
           className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-95 disabled:opacity-60"
         >
-          {loading && <Loader2 className="size-4 animate-spin" />}
+          {submitting && <Loader2 className="size-4 animate-spin" />}
           Create account
         </button>
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/login" className="font-semibold text-primary hover:underline">Sign in</Link>
+          <Link to="/login" className="font-semibold text-primary hover:underline">
+            Sign in
+          </Link>
         </p>
       </form>
     </AuthSplitLayout>
@@ -184,22 +173,34 @@ function RegisterPage() {
 }
 
 function RoleCard({
-  active, onClick, icon, title, desc,
-}: { active: boolean; onClick: () => void; icon: React.ReactNode; title: string; desc: string }) {
+  active,
+  onClick,
+  icon,
+  title,
+  desc,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
   return (
     <button
-      type="button" onClick={onClick}
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
       className={cn(
         "text-left rounded-xl border p-4 transition-all",
-        active
-          ? "border-primary/60 bg-accent shadow-elegant"
-          : "border-border bg-surface hover:bg-muted"
+        active ? "border-primary/60 bg-accent shadow-elegant" : "border-border bg-surface hover:bg-muted",
       )}
     >
-      <span className={cn(
-        "grid place-items-center size-9 rounded-lg",
-        active ? "bg-gradient-primary text-primary-foreground" : "bg-muted text-foreground"
-      )}>
+      <span
+        className={cn(
+          "grid place-items-center size-9 rounded-lg",
+          active ? "bg-gradient-primary text-primary-foreground" : "bg-muted text-foreground",
+        )}
+      >
         {icon}
       </span>
       <div className="mt-3 font-semibold text-sm">{title}</div>

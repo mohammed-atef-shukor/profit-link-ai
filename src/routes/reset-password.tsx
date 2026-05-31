@@ -5,11 +5,14 @@ import { toast } from "sonner";
 import { confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { auth } from "@/integrations/firebase/client";
+import { getFirebaseAuth } from "@/firebase/auth";
+import { redirectIfAuthenticated } from "@/lib/auth-guard";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import { Field } from "./login";
 
 export const Route = createFileRoute("/reset-password")({
   head: () => ({ meta: [{ title: "Set new password — LinkProfit AI" }] }),
+  beforeLoad: redirectIfAuthenticated,
   component: ResetPasswordPage,
 });
 
@@ -30,7 +33,7 @@ function ResetPasswordPage() {
       return;
     }
     setOobCode(code);
-    verifyPasswordResetCode(auth, code)
+    verifyPasswordResetCode(getFirebaseAuth(), code)
       .then((email) => setVerifiedEmail(email))
       .catch(() => toast.error("Reset link is invalid or expired"))
       .finally(() => setVerifying(false));
@@ -43,11 +46,11 @@ function ResetPasswordPage() {
     if (password !== confirm) return toast.error("Passwords don't match");
     setLoading(true);
     try {
-      await confirmPasswordReset(auth, oobCode, password);
+      await confirmPasswordReset(getFirebaseAuth(), oobCode, password);
       toast.success("Password updated. Please sign in.");
       navigate({ to: "/login" });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update password");
+    } catch (e) {
+      toast.error(getFirebaseErrorMessage(e, "Failed to update password"));
     } finally {
       setLoading(false);
     }

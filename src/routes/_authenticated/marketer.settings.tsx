@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { auth } from "@/integrations/firebase/client";
+import { dashboardFormWidth } from "@/components/layout/DashboardShell";
+import { auth } from "@/firebase";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 import { getUserProfile, updateUserProfile } from "@/lib/users.firestore";
 
@@ -93,7 +94,7 @@ function MarketerSettings() {
 
       <form
         onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
-        className="mt-8 grid gap-6 max-w-2xl"
+        className={`mt-8 grid gap-6 ${dashboardFormWidth}`}
       >
         <Section title="Profile">
           <Row label="Display name" error={errors.display_name}>

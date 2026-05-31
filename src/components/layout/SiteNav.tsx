@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
 
 const links = [
-  { label: "Marketplace", href: "/products" },
   { label: "Features", href: "/#features" },
   { label: "Sellers", href: "/#sellers" },
   { label: "Marketers", href: "/#marketers" },

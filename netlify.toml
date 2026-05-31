@@ -1,0 +1,21 @@
+[build]
+  command = "npm run build"
+  publish = "dist/client"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+[dev]
+  command = "npm run dev"
+  port = 8080
+  targetPort = 8080
+
+# Alias common signup path to app route
+[[redirects]]
+  from = "/signup"
+  to = "/register"
+  status = 301
+
+# SSR + static assets are handled by @netlify/vite-plugin-tanstack-start
+# (see .netlify/v1/functions/server.mjs — path "/*", preferStatic: true)

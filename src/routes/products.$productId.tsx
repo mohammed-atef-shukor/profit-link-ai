@@ -1,15 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Package, Percent, Link2, Loader2, Check, Copy, LogIn } from "lucide-react";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { useState } from "react";
+import { ArrowLeft, Package, Percent, Link2, Loader2, Check, Copy, LogIn, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 import { SiteNav } from "@/components/layout/SiteNav";
 import { SiteFooter } from "@/components/layout/SiteFooter";
+import { MarketerRouteGuard } from "@/components/auth/MarketerRouteGuard";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/integrations/firebase/client";
-import { getUserRole } from "@/hooks/use-firebase-auth";
+import { useAuth } from "@/hooks/useAuth";
+import { requireMarketer } from "@/lib/auth-guard";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import {
   getPublishedProduct,
   createReferralLink,
@@ -18,6 +19,9 @@ import {
 } from "@/lib/referrals.firestore";
 
 export const Route = createFileRoute("/products/$productId")({
+  beforeLoad: async () => {
+    await requireMarketer();
+  },
   head: () => ({ meta: [{ title: "Product — LinkProfit AI" }] }),
   component: PublicProductDetail,
 });
@@ -26,26 +30,17 @@ function PublicProductDetail() {
   const { productId } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [authReady, setAuthReady] = useState(false);
-
-  useEffect(() => onAuthStateChanged(auth, (u) => { setUser(u); setAuthReady(true); }), []);
+  const { currentUser, loading: authLoading, role, roleLoading } = useAuth();
 
   const product = useQuery({
     queryKey: ["public-product", productId],
     queryFn: () => getPublishedProduct(productId),
   });
 
-  const role = useQuery({
-    queryKey: ["user-role", user?.uid],
-    queryFn: () => getUserRole(user!.uid),
-    enabled: !!user,
-  });
-
   const myLink = useQuery({
-    queryKey: ["my-link-for", productId, user?.uid],
+    queryKey: ["my-link-for", productId, currentUser?.uid],
     queryFn: () => findMyLinkForProduct(productId),
-    enabled: !!user && role.data === "marketer",
+    enabled: !!currentUser && role === "marketer",
   });
 
   const create = useMutation({
@@ -55,13 +50,14 @@ function PublicProductDetail() {
       qc.invalidateQueries({ queryKey: ["my-referral-links"] });
       toast.success("Referral link ready");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to generate link"),
+    onError: (e) => toast.error(getFirebaseErrorMessage(e, "Failed to generate link")),
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteNav />
-      <main className="pt-32 pb-20">
+    <MarketerRouteGuard>
+      <div className="min-h-screen bg-background text-foreground">
+        <SiteNav />
+        <main className="pt-32 pb-20">
         <div className="mx-auto max-w-5xl px-6">
           <Link to="/products" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-4" /> Back to marketplace
@@ -110,13 +106,23 @@ function PublicProductDetail() {
                   </p>
                 )}
 
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Button asChild className="gap-2">
+                    <Link to="/products/$productId/checkout" params={{ productId }}>
+                      <ShoppingCart className="size-4" /> Buy now
+                    </Link>
+                  </Button>
+                </div>
+
                 <div className="mt-8 rounded-2xl border border-border bg-surface-muted/50 p-5">
                   <div className="text-xs font-semibold uppercase tracking-wider text-primary">
                     Promote & earn
                   </div>
-                  {!authReady ? (
-                    <div className="mt-3 text-sm text-muted-foreground">Loading…</div>
-                  ) : !user ? (
+                  {authLoading || (currentUser && roleLoading) ? (
+                    <div className="mt-3 text-sm text-muted-foreground" role="status">
+                      Loading…
+                    </div>
+                  ) : !currentUser ? (
                     <>
                       <p className="mt-2 text-sm text-muted-foreground">
                         Sign in as a marketer to generate your unique referral link for this product.
@@ -125,7 +131,16 @@ function PublicProductDetail() {
                         <LogIn className="size-4" /> Sign in as marketer
                       </Button>
                     </>
-                  ) : role.data === "seller" || role.data === "admin" ? (
+                  ) : role === null ? (
+                    <>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Finish account setup before generating referral links.
+                      </p>
+                      <Button onClick={() => navigate({ to: "/dashboard" })} className="mt-4 gap-2">
+                        Complete setup
+                      </Button>
+                    </>
+                  ) : role === "seller" || role === "admin" ? (
                     <p className="mt-2 text-sm text-muted-foreground">
                       You're signed in as a seller. Switch to a marketer account to promote products.
                     </p>
@@ -148,7 +163,8 @@ function PublicProductDetail() {
         </div>
       </main>
       <SiteFooter />
-    </div>
+      </div>
+    </MarketerRouteGuard>
   );
 }
 

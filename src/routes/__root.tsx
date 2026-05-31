@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -7,12 +7,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/integrations/firebase/client";
+import { AuthProvider } from "@/context/AuthProvider";
+import { AuthCacheSync } from "@/components/auth/AuthCacheSync";
 
 function NotFoundComponent() {
   return (
@@ -50,7 +49,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
-            onClick={() => { router.invalidate(); reset(); }}
+            onClick={() => {
+              router.invalidate();
+              reset();
+            }}
             className="inline-flex items-center justify-center rounded-md bg-gradient-primary px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             Try again
@@ -73,16 +75,36 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "LinkProfit AI — Turn Products into Income Opportunities" },
-      { name: "description", content: "The AI-powered affiliate marketplace where sellers grow revenue and marketers earn commissions on autopilot." },
+      {
+        name: "description",
+        content:
+          "The AI-powered affiliate marketplace where sellers grow revenue and marketers earn commissions on autopilot.",
+      },
       { name: "author", content: "LinkProfit AI" },
       { property: "og:title", content: "LinkProfit AI — Turn Products into Income Opportunities" },
-      { property: "og:description", content: "The AI-powered affiliate marketplace where sellers grow revenue and marketers earn commissions on autopilot." },
+      {
+        property: "og:description",
+        content:
+          "The AI-powered affiliate marketplace where sellers grow revenue and marketers earn commissions on autopilot.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "LinkProfit AI — Turn Products into Income Opportunities" },
-      { name: "twitter:description", content: "The AI-powered affiliate marketplace where sellers grow revenue and marketers earn commissions on autopilot." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d72c7b02-e4d8-4243-a5f8-e760e0881fec/id-preview-b6068c4e--aeb3924c-3eb1-4ef9-9c69-c4e00a93a312.lovable.app-1779001577084.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d72c7b02-e4d8-4243-a5f8-e760e0881fec/id-preview-b6068c4e--aeb3924c-3eb1-4ef9-9c69-c4e00a93a312.lovable.app-1779001577084.png" },
+      {
+        name: "twitter:description",
+        content:
+          "The AI-powered affiliate marketplace where sellers grow revenue and marketers earn commissions on autopilot.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d72c7b02-e4d8-4243-a5f8-e760e0881fec/id-preview-b6068c4e--aeb3924c-3eb1-4ef9-9c69-c4e00a93a312.lovable.app-1779001577084.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d72c7b02-e4d8-4243-a5f8-e760e0881fec/id-preview-b6068c4e--aeb3924c-3eb1-4ef9-9c69-c4e00a93a312.lovable.app-1779001577084.png",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -114,26 +136,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function AuthListener() {
-  const router = useRouter();
-  const qc = useQueryClient();
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, () => {
-      router.invalidate();
-      qc.invalidateQueries();
-    });
-    return unsub;
-  }, [router, qc]);
-  return null;
-}
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthListener />
-      <Outlet />
-      <Toaster richColors position="top-right" />
+      <AuthProvider>
+        <AuthCacheSync />
+        <Outlet />
+        <Toaster richColors position="top-right" />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

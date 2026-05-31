@@ -10,8 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { auth } from "@/integrations/firebase/client";
+import { StoreLogoUpload } from "@/components/seller/StoreLogoUpload";
+import { dashboardFormWidth } from "@/components/layout/DashboardShell";
+import { getFirebaseAuth } from "@/firebase";
+import { deleteStoreLogo, uploadStoreLogo } from "@/firebase/storage";
 import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import { getUserProfile, updateUserProfile } from "@/lib/users.firestore";
 
 export const Route = createFileRoute("/_authenticated/seller/settings")({
@@ -23,7 +27,6 @@ const schema = z.object({
   display_name: z.string().trim().min(2, "At least 2 characters").max(80),
   store_name: z.string().trim().max(80).optional().or(z.literal("")),
   store_tagline: z.string().trim().max(160).optional().or(z.literal("")),
-  logo_url: z.string().trim().url("Must be a URL").max(500).optional().or(z.literal("")),
   payout_email: z.string().trim().email("Invalid email").max(200).optional().or(z.literal("")),
 });
 
@@ -41,10 +44,12 @@ function SellerSettings() {
     display_name: "",
     store_name: "",
     store_tagline: "",
-    logo_url: "",
     payout_email: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoRemoving, setLogoRemoving] = useState(false);
+  const [logoProgress, setLogoProgress] = useState<number | null>(null);
 
   useEffect(() => {
     if (profile.data) {
@@ -52,11 +57,83 @@ function SellerSettings() {
         display_name: profile.data.display_name ?? "",
         store_name: profile.data.store_name ?? "",
         store_tagline: profile.data.store_tagline ?? "",
-        logo_url: profile.data.logo_url ?? "",
         payout_email: profile.data.payout_email ?? "",
       });
     }
   }, [profile.data]);
+
+  const invalidateProfile = () => {
+    qc.invalidateQueries({ queryKey: ["my-profile"] });
+    qc.invalidateQueries({ queryKey: ["user-profiles"] });
+    if (user?.uid) {
+      qc.invalidateQueries({ queryKey: ["store", user.uid] });
+    }
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!user?.uid) {
+      toast.error("Please sign in to upload a logo.");
+      return;
+    }
+
+    setLogoUploading(true);
+    setLogoProgress(0);
+    const previousPath = profile.data?.logo_storage_path ?? null;
+    let uploadedPath: string | null = null;
+    try {
+      const { url, path } = await uploadStoreLogo(file, (p) => setLogoProgress(p));
+      uploadedPath = path;
+      await updateUserProfile({ logo_url: url, logo_storage_path: path });
+      if (previousPath && previousPath !== path) {
+        try {
+          await deleteStoreLogo(previousPath);
+        } catch {
+          // Best-effort cleanup of old logo after profile update succeeds.
+        }
+      }
+      toast.success("Store logo updated");
+      invalidateProfile();
+    } catch (e) {
+      // If Firestore update fails after upload succeeds, try to rollback the new upload.
+      if (uploadedPath && uploadedPath !== previousPath) {
+        try {
+          await deleteStoreLogo(uploadedPath);
+        } catch {
+          // Best-effort rollback.
+        }
+      }
+      toast.error(getFirebaseErrorMessage(e, "Failed to upload logo"));
+    } finally {
+      setLogoUploading(false);
+      setLogoProgress(null);
+    }
+  };
+
+  const handleLogoRemove = async () => {
+    if (!user?.uid) {
+      toast.error("Please sign in to remove your logo.");
+      return;
+    }
+
+    const storagePath = profile.data?.logo_storage_path;
+    setLogoRemoving(true);
+    try {
+      if (storagePath) {
+        try {
+          await deleteStoreLogo(storagePath);
+        } catch {
+          // Continue clearing Firestore even if Storage delete fails.
+        }
+      }
+      await updateUserProfile({ logo_url: null, logo_storage_path: null });
+      toast.success("Logo removed successfully");
+      invalidateProfile();
+    } catch (e) {
+      toast.error(getFirebaseErrorMessage(e, "Failed to remove logo"));
+    } finally {
+      setLogoRemoving(false);
+    }
+  };
 
   const save = useMutation({
     mutationFn: async () => {
@@ -72,19 +149,18 @@ function SellerSettings() {
         display_name: form.display_name,
         store_name: form.store_name || null,
         store_tagline: form.store_tagline || null,
-        logo_url: form.logo_url || null,
         payout_email: form.payout_email || null,
       });
-      if (auth.currentUser && form.display_name !== auth.currentUser.displayName) {
-        await updateAuthProfile(auth.currentUser, { displayName: form.display_name });
+      const currentUser = getFirebaseAuth().currentUser;
+      if (currentUser && form.display_name !== currentUser.displayName) {
+        await updateAuthProfile(currentUser, { displayName: form.display_name });
       }
     },
     onSuccess: () => {
       toast.success("Settings saved");
-      qc.invalidateQueries({ queryKey: ["my-profile"] });
-      qc.invalidateQueries({ queryKey: ["user-profiles"] });
+      invalidateProfile();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to save"),
+    onError: (e: unknown) => toast.error(getFirebaseErrorMessage(e, "Failed to save")),
   });
 
   const onChange = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -106,8 +182,11 @@ function SellerSettings() {
       </div>
 
       <form
-        onSubmit={(e) => { e.preventDefault(); save.mutate(); }}
-        className="mt-8 grid gap-6 max-w-2xl"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+        className={`mt-8 grid gap-6 ${dashboardFormWidth}`}
       >
         <Section title="Profile">
           <Row label="Display name" error={errors.display_name}>
@@ -125,8 +204,15 @@ function SellerSettings() {
           <Row label="Tagline" error={errors.store_tagline}>
             <Textarea value={form.store_tagline} onChange={onChange("store_tagline")} placeholder="One sentence about your store" maxLength={160} rows={2} />
           </Row>
-          <Row label="Logo URL" error={errors.logo_url}>
-            <Input value={form.logo_url} onChange={onChange("logo_url")} placeholder="https://…" maxLength={500} />
+          <Row label="Store logo">
+            <StoreLogoUpload
+              logoUrl={profile.data?.logo_url ?? null}
+              uploading={logoUploading}
+              uploadProgress={logoProgress}
+              removing={logoRemoving}
+              onUpload={handleLogoUpload}
+              onRemove={handleLogoRemove}
+            />
           </Row>
         </Section>
 
@@ -137,7 +223,7 @@ function SellerSettings() {
         </Section>
 
         <div className="flex justify-end">
-          <Button type="submit" disabled={save.isPending} className="gap-2">
+          <Button type="submit" disabled={save.isPending || logoUploading || logoRemoving} className="gap-2">
             {save.isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             Save changes
           </Button>

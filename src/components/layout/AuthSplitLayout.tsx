@@ -60,13 +60,15 @@ export function AuthSplitLayout({
             <div className="rounded-2xl bg-white/10 p-5 backdrop-blur border border-white/20">
               <Quote className="size-5 opacity-70" />
               <p className="mt-3 text-sm leading-relaxed">
-                "LinkProfit AI replaced three tools for us. Affiliate recruitment, tracking and AI copy — all in one place."
+                "LinkProfit AI helps sellers grow faster through affiliate marketing, smart tracking, and AI-powered promotion."
               </p>
               <div className="mt-4 flex items-center gap-3">
-                <div className="size-9 rounded-full bg-white/30" />
+                <div className="grid place-items-center size-9 shrink-0 rounded-full bg-white/30 text-xs font-semibold">
+                  MS
+                </div>
                 <div>
-                  <div className="text-sm font-semibold">Sara Kowalski</div>
-                  <div className="text-xs text-white/70">Founder, Atlas Goods</div>
+                  <div className="text-sm font-semibold">Mohammed Atef Shokor</div>
+                  <div className="text-xs text-white/70">Founder, LinkProfit AI</div>
                 </div>
               </div>
             </div>

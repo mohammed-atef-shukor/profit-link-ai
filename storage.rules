@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidImageUpload() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    function isValidLogoUpload() {
+      return request.resource.size < 5 * 1024 * 1024
+        && (
+          request.resource.contentType == 'image/jpeg'
+          || request.resource.contentType == 'image/png'
+          || request.resource.contentType == 'image/webp'
+        );
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidImageUpload();
+      allow delete: if isOwner(userId);
+    }
+
+    match /products/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidImageUpload();
+      allow delete: if isOwner(userId);
+    }
+
+    match /store-logos/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidLogoUpload();
+      allow delete: if isOwner(userId);
+    }
+  }
+}

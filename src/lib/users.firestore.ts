@@ -1,7 +1,9 @@
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp } from "firebase/firestore";
-import { auth, db } from "@/integrations/firebase/client";
+import { auth, db } from "@/firebase";
 
-export type AppRole = "seller" | "marketer" | "admin";
+import type { AppRole } from "@/firebase/auth";
+
+export type { AppRole };
 
 export type UserProfile = {
   uid: string;
@@ -12,10 +14,14 @@ export type UserProfile = {
   store_name?: string | null;
   store_tagline?: string | null;
   logo_url?: string | null;
+  logo_storage_path?: string | null;
   // Payout
   payout_email?: string | null;
   payout_method?: "paypal" | "bank" | null;
   payout_details?: string | null;
+  seller_onboarding_dismissed?: boolean;
+  marketer_onboarding_dismissed?: boolean;
+  marketer_marketplace_visited?: boolean;
   created_at?: Timestamp | null;
   updated_at?: Timestamp | null;
 };
@@ -24,6 +30,24 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   const snap = await getDoc(doc(db, "users", uid));
   if (!snap.exists()) return null;
   return { uid, ...(snap.data() as Omit<UserProfile, "uid">) };
+}
+
+/** Public storefront fields only — safe to render for anonymous visitors. */
+export type PublicSellerProfile = Pick<
+  UserProfile,
+  "uid" | "display_name" | "store_name" | "store_tagline" | "logo_url"
+>;
+
+export async function getPublicSellerProfile(uid: string): Promise<PublicSellerProfile | null> {
+  const profile = await getUserProfile(uid);
+  if (!profile || (profile.role !== "seller" && profile.role !== "admin")) return null;
+  return {
+    uid: profile.uid,
+    display_name: profile.display_name,
+    store_name: profile.store_name,
+    store_tagline: profile.store_tagline,
+    logo_url: profile.logo_url,
+  };
 }
 
 export async function getUserProfilesByIds(uids: string[]): Promise<Map<string, UserProfile>> {
@@ -43,9 +67,13 @@ export type ProfilePatch = Partial<
     | "store_name"
     | "store_tagline"
     | "logo_url"
+    | "logo_storage_path"
     | "payout_email"
     | "payout_method"
     | "payout_details"
+    | "seller_onboarding_dismissed"
+    | "marketer_onboarding_dismissed"
+    | "marketer_marketplace_visited"
   >
 >;
 
@@ -55,16 +83,21 @@ export async function updateUserProfile(patch: ProfilePatch): Promise<void> {
   const ref = doc(db, "users", uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) {
-    await setDoc(ref, {
-      email: auth.currentUser?.email ?? null,
-      role: null,
-      ...patch,
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp(),
-    });
-    return;
+    throw new Error("User profile not found. Please sign out and register again.");
   }
   await updateDoc(ref, { ...patch, updated_at: serverTimestamp() });
+}
+
+export async function dismissSellerOnboarding(): Promise<void> {
+  await updateUserProfile({ seller_onboarding_dismissed: true });
+}
+
+export async function dismissMarketerOnboarding(): Promise<void> {
+  await updateUserProfile({ marketer_onboarding_dismissed: true });
+}
+
+export async function markMarketerMarketplaceVisited(): Promise<void> {
+  await updateUserProfile({ marketer_marketplace_visited: true });
 }
 
 export function displayNameFor(p: UserProfile | null | undefined, fallbackUid: string): string {

@@ -1,18 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link2, Search, Copy, Check, Percent, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import {
-  listPublishedProducts,
   listMyReferralLinks,
   createReferralLink,
   buildShareUrl,
   type ReferralLink,
 } from "@/lib/referrals.firestore";
-import type { Product } from "@/lib/products.firestore";
+import { fetchPublishedProductsPage, type Product } from "@/lib/products.firestore";
+import { useFirebaseAuth } from "@/hooks/use-firebase-auth";
+import { markMarketerMarketplaceVisited } from "@/lib/users.firestore";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { ProductGridSkeleton } from "@/components/dashboard/ProductGridSkeleton";
+import { DataTablePagination } from "@/components/dashboard/DataTablePagination";
+import { useFirestorePagination } from "@/hooks/use-firestore-pagination";
+import { MARKETPLACE_PAGE_SIZE } from "@/lib/firestore-pagination";
 
 export const Route = createFileRoute("/_authenticated/marketer/marketplace")({
   head: () => ({ meta: [{ title: "Marketplace — Marketer — LinkProfit AI" }] }),
@@ -22,9 +29,29 @@ export const Route = createFileRoute("/_authenticated/marketer/marketplace")({
 function MarketerMarketplace() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const { user, authReady } = useFirebaseAuth();
 
-  const products = useQuery({ queryKey: ["published-products"], queryFn: listPublishedProducts });
-  const links = useQuery({ queryKey: ["my-referral-links"], queryFn: listMyReferralLinks });
+  useEffect(() => {
+    if (!authReady || !user) return;
+    void markMarketerMarketplaceVisited().catch(() => {});
+  }, [authReady, user?.uid]);
+
+  const fetchPage = useCallback(
+    (pageSize: number, cursor: Parameters<typeof fetchPublishedProductsPage>[1]) =>
+      fetchPublishedProductsPage(pageSize, cursor, "newest"),
+    [],
+  );
+
+  const pagination = useFirestorePagination(fetchPage, [user?.uid], {
+    pageSize: MARKETPLACE_PAGE_SIZE,
+    enabled: authReady && !!user,
+  });
+
+  const links = useQuery({
+    queryKey: ["my-referral-links", user?.uid],
+    queryFn: listMyReferralLinks,
+    enabled: authReady,
+  });
 
   const create = useMutation({
     mutationFn: (p: Product) => createReferralLink(p),
@@ -32,7 +59,7 @@ function MarketerMarketplace() {
       qc.invalidateQueries({ queryKey: ["my-referral-links"] });
       toast.success("Referral link ready");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Failed to create link"),
+    onError: (e) => toast.error(getFirebaseErrorMessage(e, "Failed to create link")),
   });
 
   const linkByProduct = useMemo(() => {
@@ -42,13 +69,13 @@ function MarketerMarketplace() {
   }, [links.data]);
 
   const filtered = useMemo(() => {
-    const list = products.data ?? [];
+    const list = pagination.items;
     if (!search.trim()) return list;
     const s = search.toLowerCase();
     return list.filter(
       (p) => p.title.toLowerCase().includes(s) || (p.description ?? "").toLowerCase().includes(s),
     );
-  }, [products.data, search]);
+  }, [pagination.items, search]);
 
   return (
     <main>
@@ -70,60 +97,81 @@ function MarketerMarketplace() {
       </div>
 
       <div className="mt-8">
-        {products.isLoading ? (
-          <div className="rounded-2xl border border-border bg-surface p-10 text-center text-sm text-muted-foreground">
-            Loading marketplace…
-          </div>
+        {pagination.isLoading && pagination.items.length === 0 ? (
+          <ProductGridSkeleton count={6} />
         ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-border bg-surface p-10 text-center">
-            <div className="mx-auto grid place-items-center size-12 rounded-2xl bg-accent text-accent-foreground">
-              <Package className="size-5" />
-            </div>
-            <h3 className="mt-4 font-display text-lg font-semibold">No products found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {search ? "Try a different search term." : "Check back soon — sellers are still onboarding."}
-            </p>
+          <div className="rounded-2xl border border-border bg-surface shadow-soft">
+            <EmptyState
+              icon={Package}
+              title={search ? "No matching products" : "Marketplace is warming up"}
+              description={
+                search
+                  ? "Try another keyword or clear your search to browse all offers."
+                  : "New seller products are added regularly. Check back soon for high-commission offers."
+              }
+              action={
+                search
+                  ? { label: "Clear search", to: "/marketer/marketplace", onClick: () => setSearch("") }
+                  : undefined
+              }
+            />
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((p) => {
-              const existing = linkByProduct.get(p.id);
-              return (
-                <article key={p.id} className="group rounded-2xl border border-border bg-surface shadow-soft overflow-hidden flex flex-col">
-                  <div className="aspect-[16/9] bg-muted overflow-hidden">
-                    {p.image_url ? (
-                      <img src={p.image_url} alt={p.title} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    ) : (
-                      <div className="size-full grid place-items-center bg-gradient-primary text-primary-foreground">
-                        <Package className="size-8 opacity-80" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-5 flex flex-col gap-3 flex-1">
-                    <div>
-                      <h3 className="font-display text-lg font-semibold leading-tight">{p.title}</h3>
-                      {p.description && (
-                        <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((p) => {
+                const existing = linkByProduct.get(p.id);
+                return (
+                  <article key={p.id} className="group rounded-2xl border border-border bg-surface shadow-soft overflow-hidden flex flex-col">
+                    <div className="aspect-[16/9] bg-muted overflow-hidden">
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.title} className="size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="size-full grid place-items-center bg-gradient-primary text-primary-foreground">
+                          <Package className="size-8 opacity-80" />
+                        </div>
                       )}
                     </div>
-                    <div className="mt-auto flex items-center justify-between">
-                      <div className="text-lg font-bold">${Number(p.price).toFixed(2)}</div>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
-                        <Percent className="size-3" />{Number(p.commission_percent)}% commission
-                      </span>
+                    <div className="p-5 flex flex-col gap-3 flex-1">
+                      <div>
+                        <h3 className="font-display text-lg font-semibold leading-tight">{p.title}</h3>
+                        {p.description && (
+                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+                        )}
+                      </div>
+                      <div className="mt-auto flex items-center justify-between">
+                        <div className="text-lg font-bold">${Number(p.price).toFixed(2)}</div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
+                          <Percent className="size-3" />{Number(p.commission_percent)}% commission
+                        </span>
+                      </div>
+                      {existing ? (
+                        <CopyUrl url={buildShareUrl(existing.code)} />
+                      ) : (
+                        <Button onClick={() => create.mutate(p)} disabled={create.isPending} className="gap-2 w-full">
+                          <Link2 className="size-4" /> Generate referral link
+                        </Button>
+                      )}
                     </div>
-                    {existing ? (
-                      <CopyUrl url={buildShareUrl(existing.code)} />
-                    ) : (
-                      <Button onClick={() => create.mutate(p)} disabled={create.isPending} className="gap-2 w-full">
-                        <Link2 className="size-4" /> Generate referral link
-                      </Button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                  </article>
+                );
+              })}
+            </div>
+            {!search.trim() && (
+              <div className="mt-6 rounded-2xl border border-border bg-surface shadow-soft overflow-hidden">
+                <DataTablePagination
+                  page={pagination.page}
+                  rangeStart={pagination.rangeStart}
+                  rangeEnd={pagination.rangeEnd}
+                  hasPrev={pagination.hasPrev}
+                  hasNext={pagination.hasNext}
+                  isLoading={pagination.isLoading}
+                  onPrev={pagination.prevPage}
+                  onNext={pagination.nextPage}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
     </main>

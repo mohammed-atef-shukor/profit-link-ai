@@ -1,19 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { redirectIfAuthenticated } from "@/lib/auth-guard";
 import { useState } from "react";
 import { Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { sendPasswordResetEmail } from "firebase/auth";
 
 import { AuthSplitLayout } from "@/components/layout/AuthSplitLayout";
-import { auth } from "@/integrations/firebase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { getFirebaseErrorMessage } from "@/lib/firebase-errors";
 import { Field } from "./login";
 
 export const Route = createFileRoute("/forgot-password")({
   head: () => ({ meta: [{ title: "Reset password — LinkProfit AI" }] }),
+  beforeLoad: redirectIfAuthenticated,
   component: ForgotPasswordPage,
 });
 
 function ForgotPasswordPage() {
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -22,13 +25,11 @@ function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email, {
-        url: `${window.location.origin}/login`,
-      });
+      await resetPassword(email);
       setSent(true);
       toast.success("Reset link sent. Check your inbox.");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to send reset email");
+    } catch (e) {
+      toast.error(getFirebaseErrorMessage(e, "Failed to send reset email"));
     } finally {
       setLoading(false);
     }
@@ -50,14 +51,17 @@ function ForgotPasswordPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <Field label="Email" icon={<Mail className="size-4" />}>
             <input
-              type="email" required value={email}
+              type="email"
+              required
+              value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
               className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground/70"
             />
           </Field>
           <button
-            type="submit" disabled={loading}
+            type="submit"
+            disabled={loading}
             className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-95 disabled:opacity-60"
           >
             {loading && <Loader2 className="size-4 animate-spin" />}
@@ -65,7 +69,9 @@ function ForgotPasswordPage() {
           </button>
           <p className="text-center text-sm text-muted-foreground">
             Remembered it?{" "}
-            <Link to="/login" className="font-semibold text-primary hover:underline">Back to login</Link>
+            <Link to="/login" className="font-semibold text-primary hover:underline">
+              Back to login
+            </Link>
           </p>
         </form>
       )}

@@ -87,12 +87,6 @@ function Hero() {
             >
               Start as Marketer
             </Link>
-            <Link
-              to="/products"
-              className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-foreground/80 hover:text-foreground transition"
-            >
-              Explore Marketplace
-            </Link>
           </div>
 
           <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">

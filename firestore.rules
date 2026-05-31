@@ -1,0 +1,284 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function userDocPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return isSignedIn() && exists(userDocPath());
+    }
+
+    function userRole() {
+      return get(userDocPath()).data.role;
+    }
+
+    function isSellerOrAdmin() {
+      return hasProfile() && userRole() in ['seller', 'admin'];
+    }
+
+    function isMarketer() {
+      return hasProfile() && userRole() == 'marketer';
+    }
+
+    function isAdmin() {
+      return hasProfile() && userRole() == 'admin';
+    }
+
+    function validRoleOnCreate() {
+      return request.resource.data.role in ['seller', 'marketer'];
+    }
+
+    function roleUnchangedOrFirstSet() {
+      return request.resource.data.role == resource.data.role
+        || (
+          (!('role' in resource.data) || resource.data.role == null)
+          && request.resource.data.role in ['seller', 'marketer']
+        );
+    }
+
+    function isPublicSellerProfile() {
+      return resource.data.role in ['seller', 'admin'];
+    }
+
+    // ─── Users ───────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow get: if isOwner(userId)
+        || isPublicSellerProfile()
+        || (isSignedIn() && resource != null && resource.data.role in ['seller', 'marketer']);
+
+      allow list: if isOwner(userId)
+        || (isSignedIn() && resource != null && resource.data.role in ['seller', 'marketer']);
+
+      allow create: if isOwner(userId)
+        && validRoleOnCreate()
+        && request.resource.data.display_name is string
+        && (request.resource.data.email == null || request.resource.data.email is string);
+
+      allow update: if isOwner(userId) && roleUnchangedOrFirstSet();
+
+      allow delete: if false;
+    }
+
+    // ─── Products ────────────────────────────────────────────────────────────
+    match /products/{productId} {
+      allow read: if resource.data.status == 'published'
+        || (isSignedIn() && resource.data.seller_id == request.auth.uid);
+
+      allow create: if isSellerOrAdmin()
+        && request.resource.data.seller_id == request.auth.uid
+        && request.resource.data.title is string
+        && request.resource.data.title.size() >= 2
+        && request.resource.data.category is string
+        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.price is number
+        && request.resource.data.price > 0
+        && request.resource.data.commission_percent is number
+        && request.resource.data.commission_percent >= 0
+        && request.resource.data.commission_percent <= 100
+        && (!('discount_percent' in request.resource.data)
+          || request.resource.data.discount_percent == null
+          || (request.resource.data.discount_percent is number
+            && request.resource.data.discount_percent >= 0
+            && request.resource.data.discount_percent <= 100));
+
+      allow update: if isSignedIn()
+        && resource.data.seller_id == request.auth.uid
+        && request.resource.data.seller_id == resource.data.seller_id
+        && request.resource.data.title is string
+        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.price is number
+        && request.resource.data.commission_percent is number;
+
+      allow delete: if isSignedIn()
+        && resource.data.seller_id == request.auth.uid;
+    }
+
+    // ─── Referral links ──────────────────────────────────────────────────────
+    match /referral_links/{linkId} {
+      allow read: if true;
+
+      allow create: if isMarketer()
+        && request.resource.data.marketer_id == request.auth.uid
+        && request.resource.data.seller_id is string
+        && request.resource.data.product_id is string
+        && request.resource.data.seller_id
+          == get(/databases/$(database)/documents/products/$(request.resource.data.product_id)).data.seller_id
+        && get(/databases/$(database)/documents/products/$(request.resource.data.product_id)).data.status == 'published'
+        && request.resource.data.clicks == 0
+        && request.resource.data.sales == 0
+        && request.resource.data.commissions == 0;
+
+      allow update: if
+        (isMarketer() && resource.data.marketer_id == request.auth.uid)
+        || clickIncrementOnly()
+        || saleCounterIncrementOnly()
+        || sellerSyncLinkDenormOnly();
+
+      allow delete: if false;
+    }
+
+    function clickIncrementOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicks'])
+        && request.resource.data.clicks == resource.data.clicks + 1;
+    }
+
+    function expectedLinkCommissionBump() {
+      let product = get(/databases/$(database)/documents/products/$(resource.data.product_id));
+      return (product.data.price * product.data.commission_percent) / 100;
+    }
+
+    // Guests (and anyone) may bump counters after a validated sale — no auth required.
+    function saleCounterIncrementOnly() {
+      let bump = expectedLinkCommissionBump();
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['sales', 'commissions'])
+        && request.resource.data.sales == resource.data.sales + 1
+        && request.resource.data.commissions >= resource.data.commissions + bump - 0.01
+        && request.resource.data.commissions <= resource.data.commissions + bump + 0.01;
+    }
+
+    function commissionAmountValid(price, percent, amount) {
+      return amount >= (price * percent / 100) - 0.01
+        && amount <= (price * percent / 100) + 0.01;
+    }
+
+    function saleBuyerFieldsValid() {
+      return request.resource.data.buyer_name is string
+        && request.resource.data.buyer_name.size() >= 2
+        && request.resource.data.buyer_email is string
+        && request.resource.data.buyer_email.size() >= 5
+        && request.resource.data.status == 'completed';
+    }
+
+    function saleProductFieldsValid(product) {
+      return request.resource.data.seller_id == product.data.seller_id
+        && product.data.status == 'published'
+        && request.resource.data.price == product.data.price
+        && request.resource.data.commission_percent == product.data.commission_percent
+        && commissionAmountValid(
+          request.resource.data.price,
+          request.resource.data.commission_percent,
+          request.resource.data.commission_amount
+        );
+    }
+
+    function saleRequiredKeys() {
+      return request.resource.data.keys().hasAll([
+        'product_id', 'product_title', 'seller_id', 'marketer_id', 'referral_link_id',
+        'referral_code', 'commission_owner', 'buyer_name', 'buyer_email', 'price',
+        'commission_percent', 'commission_amount', 'status', 'created_at'
+      ]);
+    }
+
+    // Marketer referral checkout (/r/{code}/checkout).
+    function validMarketerReferralSale() {
+      let link = get(/databases/$(database)/documents/referral_links/$(request.resource.data.referral_link_id));
+      let product = get(/databases/$(database)/documents/products/$(request.resource.data.product_id));
+      return request.resource.data.commission_owner == 'marketer'
+        && link.data.product_id == request.resource.data.product_id
+        && link.data.code == request.resource.data.referral_code
+        && link.data.marketer_id == request.resource.data.marketer_id
+        && saleProductFieldsValid(product)
+        && saleBuyerFieldsValid()
+        && (
+          !('seller_id' in link.data)
+          || link.data.seller_id == ''
+          || link.data.seller_id == product.data.seller_id
+        );
+    }
+
+    // Direct platform checkout (/products/{id}/checkout) — no referral.
+    function validDirectPlatformSale() {
+      let product = get(/databases/$(database)/documents/products/$(request.resource.data.product_id));
+      return request.resource.data.commission_owner == 'platform'
+        && request.resource.data.marketer_id == null
+        && request.resource.data.referral_link_id == null
+        && request.resource.data.referral_code == null
+        && saleProductFieldsValid(product)
+        && saleBuyerFieldsValid();
+    }
+
+    function validCommissionCreate() {
+      let sale = get(/databases/$(database)/documents/sales/$(request.resource.data.sale_id));
+      return sale.data.commission_owner == 'marketer'
+        && sale.data.marketer_id == request.resource.data.marketer_id
+        && sale.data.seller_id == request.resource.data.seller_id
+        && sale.data.product_id == request.resource.data.product_id
+        && request.resource.data.amount == sale.data.commission_amount
+        && request.resource.data.status == 'completed'
+        && request.resource.data.amount is number
+        && request.resource.data.keys().hasAll([
+          'marketer_id', 'seller_id', 'product_id', 'sale_id', 'amount', 'status', 'created_at'
+        ]);
+    }
+
+    function validPlatformEarningCreate() {
+      let sale = get(/databases/$(database)/documents/sales/$(request.resource.data.sale_id));
+      return sale.data.commission_owner == 'platform'
+        && sale.data.seller_id == request.resource.data.seller_id
+        && sale.data.product_id == request.resource.data.product_id
+        && request.resource.data.commission_amount == sale.data.commission_amount
+        && request.resource.data.amount == sale.data.price
+        && request.resource.data.keys().hasAll([
+          'sale_id', 'product_id', 'seller_id', 'amount', 'commission_amount', 'created_at'
+        ]);
+    }
+
+    function sellerSyncLinkDenormOnly() {
+      return isSignedIn()
+        && resource.data.seller_id == request.auth.uid
+        && request.resource.data.marketer_id == resource.data.marketer_id
+        && request.resource.data.seller_id == resource.data.seller_id
+        && request.resource.data.product_id == resource.data.product_id
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['product_title', 'product_price', 'commission_percent']);
+    }
+
+    // ─── Sales (demo checkout — replace with payment webhook for production) ─
+    match /sales/{saleId} {
+      allow read: if isSignedIn() && (
+        resource.data.seller_id == request.auth.uid
+        || resource.data.marketer_id == request.auth.uid
+        || isAdmin()
+      );
+
+      // Create only — guests may purchase; no read/update/delete for anonymous users.
+      allow create: if saleRequiredKeys()
+        && (validMarketerReferralSale() || validDirectPlatformSale());
+
+      allow update, delete: if false;
+    }
+
+    // ─── Marketer commissions (referral sales only) ─────────────────────────
+    match /commissions/{commissionId} {
+      allow read: if isSignedIn() && (
+        resource.data.marketer_id == request.auth.uid
+        || resource.data.seller_id == request.auth.uid
+        || isAdmin()
+      );
+
+      allow create: if validCommissionCreate();
+
+      allow update, delete: if false;
+    }
+
+    // ─── Platform earnings (direct sales only) ──────────────────────────────
+    match /platform_earnings/{earningId} {
+      allow read: if isAdmin();
+
+      allow create: if validPlatformEarningCreate();
+
+      allow update, delete: if false;
+    }
+  }
+}

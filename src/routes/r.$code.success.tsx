@@ -31,9 +31,10 @@ function SuccessPage() {
         <div className="mx-auto grid place-items-center size-14 rounded-2xl bg-gradient-primary text-primary-foreground shadow-elegant">
           <CheckCircle2 className="size-7" />
         </div>
-        <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">Purchase confirmed</h1>
+        <h1 className="mt-5 font-display text-2xl font-bold tracking-tight">Purchase completed successfully</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Thanks for your order{productQ.data ? `. ${productQ.data.title}` : ""} — the referring marketer's commission has been credited.
+          Thank you{productQ.data ? ` for your order — ${productQ.data.title}` : ""}. The referring marketer&apos;s
+          commission has been recorded. No account was required.
         </p>
         {productQ.data && (
           <div className="mt-6 rounded-xl bg-surface-muted p-4 text-left text-sm">
@@ -48,10 +49,10 @@ function SuccessPage() {
           </div>
         )}
         <Link
-          to="/products"
+          to="/"
           className="mt-8 inline-flex items-center justify-center rounded-full bg-gradient-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-elegant hover:opacity-95"
         >
-          Browse more products
+          Back to home
         </Link>
       </div>
     </main>
